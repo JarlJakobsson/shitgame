@@ -1,0 +1,187 @@
+/* Enemy selection styles */
+.enemyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin: 2rem 0;
+}
+.enemyCard {
+  background: #222;
+  border: 2px solid #444;
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-width: 220px;
+  max-width: 260px;
+  box-shadow: 0 2px 8px #0008;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.enemyCard h3 {
+  margin-bottom: 0.5rem;
+}
+.enemyCard ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem 0;
+}
+.enemyCard li {
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+.enemyCard button {
+  margin-top: 0.5rem;
+}
+.container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.arena {
+  max-width: 700px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 2rem;
+}
+
+.arena h2 {
+  color: #ffd700;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+}
+
+.fighters {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.fighter {
+  flex: 1;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid #667eea;
+  padding: 1rem;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.fighter h3 {
+  color: #ffd700;
+  margin: 0 0 0.8rem 0;
+}
+
+.healthBar {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #667eea;
+  border-radius: 3px;
+  height: 20px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.health {
+  background: linear-gradient(90deg, #4CAF50, #45a049);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.fighter span {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.vs {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.battleLog {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #667eea;
+  border-radius: 5px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.battleLog h4 {
+  color: #ffd700;
+  margin: 0 0 0.8rem 0;
+}
+
+.log {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.logEntry {
+  color: #ccc;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  font-size: 0.9rem;
+}
+
+.logEntry:last-child {
+  border-bottom: none;
+}
+
+.result {
+  background: rgba(76, 175, 80, 0.1);
+  border: 2px solid #4CAF50;
+  border-radius: 5px;
+  padding: 1.5rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.result h3 {
+  color: #4CAF50;
+  margin: 0 0 0.8rem 0;
+  font-size: 1.5rem;
+}
+
+.result p {
+  color: #ccc;
+  margin: 0.5rem 0;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.button {
+  flex: 1;
+  padding: 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.button:hover:not(:disabled) {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

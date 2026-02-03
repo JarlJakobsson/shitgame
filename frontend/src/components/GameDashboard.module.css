@@ -1,0 +1,174 @@
+.container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.dashboard {
+  max-width: 600px;
+  margin: 0 auto;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.header h1 {
+  color: #ffd700;
+  margin: 0;
+  font-size: 2rem;
+}
+
+.logoutBtn {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logoutBtn:hover {
+  background: #ff5252;
+  transform: translateY(-2px);
+}
+
+.stats {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  color: #ccc;
+}
+
+.statRow span:first-child {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.healthBar {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  color: #ffd700;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.barContainer {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #667eea;
+  border-radius: 5px;
+  height: 25px;
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+}
+
+.bar {
+  background: linear-gradient(90deg, #4CAF50, #45a049);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.value {
+  text-align: center;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.attributes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.attribute {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid #667eea;
+  padding: 1rem;
+  border-radius: 5px;
+  text-align: center;
+  color: #ccc;
+}
+
+.attribute span:first-child {
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.record {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+  color: #ccc;
+}
+
+.record strong {
+  color: #ffd700;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.button,
+.primaryButton {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.button {
+  background: #667eea;
+  color: white;
+}
+
+.button:hover:not(:disabled) {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+}
+
+.button:disabled,
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

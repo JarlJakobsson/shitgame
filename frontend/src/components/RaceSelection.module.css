@@ -1,0 +1,100 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+}
+
+.card {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 2rem;
+  border-radius: 10px;
+  border: 2px solid #667eea;
+  max-width: 600px;
+  width: 100%;
+}
+
+.card h2 {
+  color: #ffd700;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+}
+
+.raceList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 600px) {
+  .raceList {
+    grid-template-columns: 1fr;
+  }
+}
+
+.raceOption {
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid #667eea;
+  padding: 1.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.raceOption:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+.raceOption.selected {
+  background: rgba(102, 126, 234, 0.4);
+  border-color: #ffd700;
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.6);
+}
+
+.raceOption h3 {
+  color: #ffd700;
+  margin: 0 0 0.5rem 0;
+}
+
+.raceOption p {
+  color: #ccc;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.button {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.button:hover:not(:disabled) {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
