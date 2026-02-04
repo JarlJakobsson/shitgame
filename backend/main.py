@@ -4,6 +4,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.types import Receive, Scope, Send
 from math import floor
 import random
 import math
@@ -19,6 +20,27 @@ from leveling import apply_experience
 # ============================================
 
 app = FastAPI(title="Gladiator Arena API", version="1.0.0")
+
+
+class StripApiPrefixMiddleware:
+    """Allow Firebase /api/* rewrites by stripping the /api prefix."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if path == "/api" or path.startswith("/api/"):
+                new_path = path[4:] or "/"
+                scope = dict(scope)
+                scope["path"] = new_path
+                if "raw_path" in scope:
+                    raw_path = scope["raw_path"]
+                    scope["raw_path"] = raw_path[4:] or b"/"
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(StripApiPrefixMiddleware)
 
 # List available enemies
 @app.get("/enemies")
