@@ -102,8 +102,17 @@ function App() {
         />
       )}
 
-      {gameState === 'arena' && (
-        <Arena onBattleEnd={handleBattleEnd} />
+      {gameState === 'arena' && gladiator && (
+        <Arena
+          onBattleEnd={handleBattleEnd}
+          playerRace={
+            gladiator.race && typeof gladiator.race === 'string'
+              ? gladiator.race.toLowerCase() === 'orc'
+                ? 'orc'
+                : 'human'
+              : 'human'
+          }
+        />
       )}
     </div>
   );

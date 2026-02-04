@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import gameAPI from '../services/gameAPI';
 import styles from './Arena.module.css';
+import humanImg from '../assets/human.png';
+import orcImg from '../assets/orc.png';
 
 interface ArenaProps {
   onBattleEnd: () => void;
+  playerRace: 'human' | 'orc';
 }
 
 interface CombatState {
@@ -15,8 +18,7 @@ interface CombatState {
   actions: string[];
 }
 
-
-export function Arena({ onBattleEnd }: ArenaProps) {
+export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
   const [combatState, setCombatState] = useState<CombatState | null>(null);
   const [loading, setLoading] = useState(false);
   const [battleEnded, setBattleEnded] = useState(false);
@@ -89,7 +91,6 @@ export function Arena({ onBattleEnd }: ArenaProps) {
     }
   };
 
-
   if (loading && !combatState) {
     return <div className={styles.container}><div>Loading arena...</div></div>;
   }
@@ -104,6 +105,13 @@ export function Arena({ onBattleEnd }: ArenaProps) {
             {Object.entries(enemies).map(([name, data]) => (
               <li key={name} className={styles.enemyItem}>
                 <button className={styles.button} onClick={() => handleEnemySelect(name)}>
+                  {/* Show image if enemy is orc or human */}
+                  {name.toLowerCase() === 'orc' && (
+                    <img src={orcImg} alt="Orc" style={{ width: 48, height: 48, marginRight: 8, verticalAlign: 'middle' }} />
+                  )}
+                  {name.toLowerCase() === 'human' && (
+                    <img src={humanImg} alt="Human" style={{ width: 48, height: 48, marginRight: 8, verticalAlign: 'middle' }} />
+                  )}
                   <strong>{name}</strong>: {data.description}
                 </button>
               </li>
@@ -122,9 +130,14 @@ export function Arena({ onBattleEnd }: ArenaProps) {
     <div className={styles.container}>
       <div className={styles.arena}>
         <h2>⚔️ ARENA BATTLE ⚔️</h2>
-
         <div className={styles.fighters}>
           <div className={styles.fighter}>
+            {playerRace === 'orc' && (
+              <img src={orcImg} alt="Orc" style={{ width: 48, height: 48, marginBottom: 8 }} />
+            )}
+            {playerRace === 'human' && (
+              <img src={humanImg} alt="Human" style={{ width: 48, height: 48, marginBottom: 8 }} />
+            )}
             <h3>{combatState.player_name}</h3>
             <div className={styles.healthBar}>
               <div
@@ -138,6 +151,7 @@ export function Arena({ onBattleEnd }: ArenaProps) {
           <div className={styles.vs}>VS</div>
 
           <div className={styles.fighter}>
+            {/* Only show opponent name, not image */}
             <h3>{combatState.opponent_name}</h3>
             <div className={styles.healthBar}>
               <div
