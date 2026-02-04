@@ -59,13 +59,14 @@ class Combat:
     def execute_round(self):
         """
         Execute one round of combat.
-        
         Returns:
             dict: Round information
         """
         self.round += 1
         round_info = {"round": self.round, "actions": []}
-        
+
+
+
         # Player attacks first
         damage, critical = self.calculate_attack_damage(self.player, self.opponent)
         if damage == 0:
@@ -74,14 +75,13 @@ class Combat:
             actual_damage = self.opponent.take_damage(damage)
             hit_type = " (CRITICAL!)" if critical else ""
             action = f"{self.player.name} hits {self.opponent.name} for {actual_damage} damage{hit_type}"
-        
         round_info["actions"].append(action)
-        
+
         # Check if opponent is defeated
         if not self.opponent.is_alive():
             round_info["winner"] = "player"
             return round_info
-        
+
         # Opponent attacks
         damage, critical = self.calculate_attack_damage(self.opponent, self.player)
         if damage == 0:
@@ -90,14 +90,13 @@ class Combat:
             actual_damage = self.player.take_damage(damage)
             hit_type = " (CRITICAL!)" if critical else ""
             action = f"{self.opponent.name} hits {self.player.name} for {actual_damage} damage{hit_type}"
-        
         round_info["actions"].append(action)
-        
+
         # Check if player is defeated
         if not self.player.is_alive():
             round_info["winner"] = "opponent"
             return round_info
-        
+
         round_info["winner"] = None
         return round_info
     

@@ -18,33 +18,51 @@ interface CombatState {
 
 export function Arena({ onBattleEnd }: ArenaProps) {
   const [combatState, setCombatState] = useState<CombatState | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [battleEnded, setBattleEnded] = useState(false);
   const [battleResult, setBattleResult] = useState<{ result: string; gladiator: any; reward_gold: number; reward_exp: number; battle_log: string[] } | null>(null);
-  // Start combat automatically on mount
+  const [enemyMenuOpen, setEnemyMenuOpen] = useState(true);
+  const [enemies, setEnemies] = useState<Record<string, any>>({});
+  const [selectedEnemy, setSelectedEnemy] = useState<string | null>(null);
+
   useEffect(() => {
-    const startCombat = async () => {
-      setLoading(true);
+    // Fetch enemy list on mount
+    const fetchEnemies = async () => {
       try {
-        const result = await gameAPI.startCombat();
-        const initialState = {
-          player_name: result.player.name,
-          opponent_name: result.opponent.name,
-          player_health: result.player.current_health,
-          opponent_health: result.opponent.current_health,
-          round: 0,
-          actions: [],
-        };
-        setCombatState(initialState);
-        setLoading(false);
-        simulateAllRounds(initialState);
+        const data = await gameAPI.getEnemies();
+        setEnemies(data);
       } catch (err) {
-        setLoading(false);
+        setEnemies({});
       }
     };
-    startCombat();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchEnemies();
   }, []);
+
+  const handleFightClick = () => {
+    setEnemyMenuOpen(true);
+  };
+
+  const handleEnemySelect = async (enemyName: string) => {
+    setSelectedEnemy(enemyName);
+    setEnemyMenuOpen(false);
+    setLoading(true);
+    try {
+      const result = await gameAPI.startCombatWithEnemy(enemyName);
+      const initialState = {
+        player_name: result.player.name,
+        opponent_name: result.opponent.name,
+        player_health: result.player.current_health,
+        opponent_health: result.opponent.current_health,
+        round: 0,
+        actions: [],
+      };
+      setCombatState(initialState);
+      setLoading(false);
+      simulateAllRounds(initialState);
+    } catch (err) {
+      setLoading(false);
+    }
+  };
 
   const simulateAllRounds = async (initialState: CombatState) => {
     let currentState = initialState;
@@ -77,11 +95,31 @@ export function Arena({ onBattleEnd }: ArenaProps) {
     }
   };
 
+
   if (loading && !combatState) {
     return <div className={styles.container}><div>Loading arena...</div></div>;
   }
 
-  // Enemy selection UI removed; only random Human/Orc fights supported
+  // Show enemy selection menu if not in combat
+  if (enemyMenuOpen) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.menu}>
+          <h2>Choose Your Opponent</h2>
+          <ul className={styles.enemyList}>
+            {Object.entries(enemies).map(([name, data]) => (
+              <li key={name} className={styles.enemyItem}>
+                <button className={styles.button} onClick={() => handleEnemySelect(name)}>
+                  <strong>{name}</strong>: {data.description}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   if (!combatState) {
     return <div className={styles.container}><div>Failed to load arena</div></div>;
   }

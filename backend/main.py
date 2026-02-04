@@ -10,9 +10,18 @@ from models import GladiatorCreate, GladiatorResponse, CombatRound, BattleResult
 from gladiator import Gladiator
 from combat import Combat
 from races import RACES
-
+from enemies import ENEMIES, get_enemy
+# ============================================
+# GAME ENDPOINTS
+# ============================================
 
 app = FastAPI(title="Gladiator Arena API", version="1.0.0")
+
+# List available enemies
+@app.get("/enemies")
+def get_enemies():
+    """Get all available enemies."""
+    return {name: data for name, data in ENEMIES.items()}
 
 # Enable CORS for frontend access
 app.add_middleware(
@@ -71,9 +80,6 @@ def get_gladiator():
 @app.post("/gladiator/train")
 def train_gladiator():
     """Train the gladiator."""
-    if current_gladiator is None:
-        raise HTTPException(status_code=404, detail="No gladiator created")
-    
     if current_gladiator.gold < 10:
         raise HTTPException(status_code=400, detail="Not enough gold to train")
     
@@ -109,6 +115,7 @@ async def validation_exception_handler(request, exc):
         content={"detail": exc.errors()}
     )
 
+
 @app.post("/combat/start")
 async def start_combat(request: Request, enemy_name: str = Query(None)):
     global current_combat
@@ -132,23 +139,30 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
     # Reset player health
     current_gladiator.current_health = current_gladiator.max_health
 
-    # Only allow Human/Orc as opponents
-    opponent_races = list(RACES.keys())
-    if not opponent_races:
-        print("No races available for opponent selection")
-        raise HTTPException(status_code=500, detail="No races available for opponent selection")
-    opponent_race = random.choice(opponent_races)
-    difficulty = random.choice(["Weak", "Normal", "Strong"])
-    opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race)
-    if difficulty == "Weak":
-        opponent.strength = int(opponent.strength * 0.8)
-        opponent.agility = int(opponent.agility * 0.8)
-        opponent.max_health = int(opponent.max_health * 0.9)
-    elif difficulty == "Strong":
-        opponent.strength = int(opponent.strength * 1.2)
-        opponent.agility = int(opponent.agility * 1.2)
-        opponent.max_health = int(opponent.max_health * 1.1)
-    opponent.current_health = opponent.max_health
+    # If enemy_name is provided and valid, use it
+    opponent = None
+    if enemy_name and enemy_name in ENEMIES:
+        from gladiator import Enemy
+        enemy_data = ENEMIES[enemy_name]
+        opponent = Enemy(enemy_name, enemy_data)
+    else:
+        # Fallback to random race/difficulty
+        opponent_races = list(RACES.keys())
+        if not opponent_races:
+            print("No races available for opponent selection")
+            raise HTTPException(status_code=500, detail="No races available for opponent selection")
+        opponent_race = random.choice(opponent_races)
+        difficulty = random.choice(["Weak", "Normal", "Strong"])
+        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race)
+        if difficulty == "Weak":
+            opponent.strength = int(opponent.strength * 0.8)
+            opponent.agility = int(opponent.agility * 0.8)
+            opponent.max_health = int(opponent.max_health * 0.9)
+        elif difficulty == "Strong":
+            opponent.strength = int(opponent.strength * 1.2)
+            opponent.agility = int(opponent.agility * 1.2)
+            opponent.max_health = int(opponent.max_health * 1.1)
+        opponent.current_health = opponent.max_health
 
     current_combat = Combat(current_gladiator, opponent)
 
