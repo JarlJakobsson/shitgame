@@ -31,6 +31,8 @@ export interface Race {
   strength: number;
   agility: number;
   description: string;
+  origin?: string;
+  specialty?: string;
 }
 
 export const gameAPI = {
