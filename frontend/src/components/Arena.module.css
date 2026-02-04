@@ -43,36 +43,38 @@
 }
 
 .arena {
-  max-width: 700px;
+  max-width: 11100px;
   width: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #667eea;
-  border-radius: 10px;
-  padding: 2rem;
 }
 
-.arena h2 {
+.arenaHeader h2 {
   color: #ffd700;
   text-align: center;
   margin-bottom: 2rem;
   font-size: 1.8rem;
 }
 
-.fighters {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  gap: 1rem;
+.arenaGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.2fr) minmax(220px, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
 }
 
 .fighter {
-  flex: 1;
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid #667eea;
-  padding: 1rem;
-  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #667eea;
+  padding: 1.25rem;
+  border-radius: 10px;
   text-align: center;
+  height: 100%;
+}
+
+.fighterImage {
+  width: 540px;
+  height: 540px;
+  object-fit: contain;
+  margin-bottom: 0.75rem;
 }
 
 .fighter h3 {
@@ -100,20 +102,39 @@
   font-size: 0.9rem;
 }
 
-.vs {
+.centerColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.centerCard {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vsBadge {
   color: #ffd700;
   font-weight: bold;
   font-size: 1.5rem;
-  display: flex;
-  align-items: center;
+  text-align: center;
+  padding: 0.5rem 0;
 }
 
 .battleLog {
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid #667eea;
   border-radius: 5px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .battleLog h4 {
@@ -130,11 +151,23 @@
   color: #ccc;
   padding: 0.4rem 0;
   border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .logEntry:last-child {
   border-bottom: none;
+}
+
+.roundMarker {
+  color: #ffd700;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  margin: 0.5rem 0;
 }
 
 .result {
@@ -143,7 +176,6 @@
   border-radius: 5px;
   padding: 1.5rem;
   text-align: center;
-  margin-bottom: 1.5rem;
 }
 
 .result h3 {
@@ -184,4 +216,23 @@
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .arenaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fighter {
+    order: 1;
+  }
+
+  .centerColumn {
+    order: 2;
+  }
+
+  .fighterImage {
+    width: 120px;
+    height: 120px;
+  }
 }
