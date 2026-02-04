@@ -24,7 +24,14 @@ app = FastAPI(title="Gladiator Arena API", version="1.0.0")
 @app.get("/enemies")
 def get_enemies():
     """Get all available enemies."""
-    return {name: data for name, data in ENEMIES.items()}
+    if current_gladiator is None:
+        return {}
+    level = current_gladiator.level
+    return {
+        name: data
+        for name, data in ENEMIES.items()
+        if data.get("min_level", 1) <= level
+    }
 
 # Enable CORS for frontend access
 app.add_middleware(
@@ -240,6 +247,9 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
     # If enemy_name is provided and valid, use it
     opponent = None
     if enemy_name and enemy_name in ENEMIES:
+        required_level = ENEMIES[enemy_name].get("min_level", 1)
+        if current_gladiator.level < required_level:
+            raise HTTPException(status_code=400, detail="Enemy locked by level")
         from gladiator import Enemy
         enemy_data = ENEMIES[enemy_name]
         opponent = Enemy(enemy_name, enemy_data)

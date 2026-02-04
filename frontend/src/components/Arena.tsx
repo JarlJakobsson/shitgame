@@ -121,26 +121,39 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
     return (
       <div className={styles.container}>
         <div className={styles.menu}>
-          <h2>Choose Your Opponent</h2>
-          <ul className={styles.enemyList}>
+          <div className={styles.menuHeader}>
+            <h2>Choose Your Opponent</h2>
+            <p>Pick your next challenge and earn your glory.</p>
+          </div>
+          <div className={styles.enemyGrid}>
             {Object.entries(enemies).map(([name, data]) => {
               const imageKey = name.toLowerCase();
               const enemyImage = enemyImages[imageKey];
               return (
-              <li key={name} className={styles.enemyItem}>
-                <button className={styles.button} onClick={() => handleEnemySelect(name)}>
-                  {enemyImage && (
-                    <img
-                      src={enemyImage}
-                      alt={name}
-                      style={{ width: 48, height: 48, marginRight: 8, verticalAlign: 'middle' }}
-                    />
-                  )}
-                  <strong>{name}</strong>: {data.description}
+                <button
+                  key={name}
+                  className={styles.enemyCard}
+                  onClick={() => handleEnemySelect(name)}
+                >
+                  <div className={styles.enemyPortrait}>
+                    {enemyImage && (
+                      <img src={enemyImage} alt={name} className={styles.enemyImage} />
+                    )}
+                  </div>
+                  <div className={styles.enemyInfo}>
+                    <div className={styles.enemyName}>{name}</div>
+                    {typeof data.min_level === 'number' && (
+                      <div className={styles.enemyLevel}>
+                        Level {data.min_level}+
+                      </div>
+                    )}
+                    <div className={styles.enemyDesc}>{data.description}</div>
+                  </div>
+                  <div className={styles.enemyAction}>Fight</div>
                 </button>
-              </li>
-            )})}
-          </ul>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

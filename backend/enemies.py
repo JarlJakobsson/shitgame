@@ -10,6 +10,7 @@ ENEMIES = {
         "initiative": 12,
         "weaponskill": 3,
         "stamina": 6,
+        "min_level": 3,
         "description": "A sneaky goblin, quick but fragile."
     },
     "Skeleton": {
@@ -19,6 +20,7 @@ ENEMIES = {
         "initiative": 8,
         "weaponskill": 4,
         "stamina": 5,
+        "min_level": 4,
         "description": "A reanimated skeleton, hard to kill."
     },
     "Minotaur": {
@@ -28,6 +30,7 @@ ENEMIES = {
         "initiative": 6,
         "weaponskill": 6,
         "stamina": 5,
+        "min_level": 8,
         "description": "A massive beast with brutal power."
     },
     "Dark Knight": {
@@ -37,6 +40,7 @@ ENEMIES = {
         "initiative": 9,
         "weaponskill": 8,
         "stamina": 10,
+        "min_level": 6,
         "description": "A fallen knight, skilled and dangerous."
     },
     "Slime": {
@@ -46,6 +50,7 @@ ENEMIES = {
         "initiative": 5,
         "weaponskill": 1,
         "stamina": 8,
+        "min_level": 1,
         "description": "A weak but persistent blob of goo."
     },
     "Bandit": {
@@ -55,6 +60,7 @@ ENEMIES = {
         "initiative": 11,
         "weaponskill": 5,
         "stamina": 7,
+        "min_level": 2,
         "description": "A quick and greedy human outlaw."
     }
 }
