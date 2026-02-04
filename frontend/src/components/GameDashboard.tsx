@@ -74,12 +74,8 @@ export function GameDashboard({
             <span>Strength: {gladiator.strength}</span>
           </div>
           <div className={styles.attribute}>
-            <span>{'\u26A1'}</span>
-            <span>Agility: {gladiator.agility}</span>
-          </div>
-          <div className={styles.attribute}>
             <span>{'\uD83C\uDF00'}</span>
-            <span>Dodge: {gladiator.agility * 2}%</span>
+            <span>Dodge: {gladiator.dodge}</span>
           </div>
           <div className={styles.attribute}>
             <span>{'\uD83D\uDCA8'}</span>

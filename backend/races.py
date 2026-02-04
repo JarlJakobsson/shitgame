@@ -6,7 +6,7 @@ RACES = {
     "Human": {
         "health": 100,
         "strength": 8,
-        "agility": 8,
+        "dodge": 8,
         "initiative": 10,
         "weaponskill": 5,
         "description": "Balanced warriors with versatile combat skills",
@@ -26,14 +26,14 @@ RACES = {
             { "stat": "Strength", "value": "+10%" },
             { "stat": "Health", "value": "+10%" },
             { "stat": "Stamina", "value": "+10%" },
-            { "stat": "Agility", "value": "+10%" },
+            { "stat": "Dodge", "value": "+10%" },
             { "stat": "Initiative", "value": "+10%" }
         ]
     },
     "Orc": {
         "health": 120,
         "strength": 10,
-        "agility": 5,
+        "dodge": 5,
         "initiative": 7,
         "weaponskill": 3,
         "description": "Powerful and hardy, with high health and strength",
@@ -54,14 +54,14 @@ RACES = {
             { "stat": "Strength", "value": "+30%" },
             { "stat": "Stamina", "value": "+0%" },
             { "stat": "Initiative", "value": "+0%" },
-            { "stat": "Agility", "value": "-30%" },
+            { "stat": "Dodge", "value": "-30%" },
             { "stat": "Weaponskill", "value": "+10%" }
         ]
     },
     "Goblin": {
         "health": 60,
         "strength": 4,
-        "agility": 12,
+        "dodge": 12,
         "initiative": 14,
         "weaponskill": 2,
         "description": "Super fast but fragile, relying on speed over power",
@@ -82,14 +82,14 @@ RACES = {
             { "stat": "Strength", "value": "+20%" },
             { "stat": "Stamina", "value": "+0%" },
             { "stat": "Initiative", "value": "+10%" },
-            { "stat": "Agility", "value": "+30%" },
+            { "stat": "Dodge", "value": "+30%" },
             { "stat": "Weaponskill", "value": "+10%" }
         ]
     },
     "Minotaur": {
         "health": 150,
         "strength": 15,
-        "agility": 3,
+        "dodge": 3,
         "initiative": 5,
         "weaponskill": 5,
         "description": "Slow and crushingly strong, built to overpower enemies",
@@ -110,14 +110,14 @@ RACES = {
             { "stat": "Strength", "value": "+50%" },
             { "stat": "Stamina", "value": "-20%" },
             { "stat": "Initiative", "value": "-40%" },
-            { "stat": "Agility", "value": "-60%" },
+            { "stat": "Dodge", "value": "-60%" },
             { "stat": "Weaponskill", "value": "-15%" }
         ]
     },
     "Skeleton": {
         "health": 90,
         "strength": 7,
-        "agility": 6,
+        "dodge": 6,
         "initiative": 7,
         "weaponskill": 5,
         "description": "Steady and resilient, harder to put down than it looks",
@@ -134,7 +134,7 @@ RACES = {
             { "stat": "Strength", "value": "+0%" },
             { "stat": "Stamina", "value": "+100%" },
             { "stat": "Initiative", "value": "-10%" },
-            { "stat": "Agility", "value": "+5%" },
+            { "stat": "Dodge", "value": "+5%" },
             { "stat": "Weaponskill", "value": "+5%" }
         ]
     }

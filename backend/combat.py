@@ -39,9 +39,9 @@ class Combat:
         if base_damage == 0 and attacker.strength > 0:
             base_damage = 1
 
-        # Hit chance based on a weaponskill vs agility contest
+        # Hit chance based on a weaponskill vs dodge contest
         hit_rating = max(1.0, attacker.weaponskill)
-        dodge_rating = max(1.0, defender.agility * 0.25)
+        dodge_rating = max(1.0, defender.dodge * 0.25)
         hit_chance = hit_rating / (hit_rating + dodge_rating)
         hit_chance = max(0.05, min(0.95, hit_chance))
         if random.random() > hit_chance:

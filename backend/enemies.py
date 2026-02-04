@@ -6,7 +6,7 @@ ENEMIES = {
     "Goblin": {
         "health": 60,
         "strength": 5,
-        "agility": 10,
+        "dodge": 10,
         "initiative": 12,
         "weaponskill": 3,
         "stamina": 6,
@@ -15,7 +15,7 @@ ENEMIES = {
     "Skeleton": {
         "health": 80,
         "strength": 7,
-        "agility": 7,
+        "dodge": 7,
         "initiative": 8,
         "weaponskill": 4,
         "stamina": 5,
@@ -24,7 +24,7 @@ ENEMIES = {
     "Minotaur": {
         "health": 140,
         "strength": 14,
-        "agility": 4,
+        "dodge": 4,
         "initiative": 6,
         "weaponskill": 6,
         "stamina": 5,
@@ -33,7 +33,7 @@ ENEMIES = {
     "Dark Knight": {
         "health": 110,
         "strength": 10,
-        "agility": 8,
+        "dodge": 8,
         "initiative": 9,
         "weaponskill": 8,
         "stamina": 10,
@@ -42,7 +42,7 @@ ENEMIES = {
     "Slime": {
         "health": 50,
         "strength": 3,
-        "agility": 5,
+        "dodge": 5,
         "initiative": 5,
         "weaponskill": 1,
         "stamina": 8,
@@ -51,7 +51,7 @@ ENEMIES = {
     "Bandit": {
         "health": 90,
         "strength": 8,
-        "agility": 11,
+        "dodge": 11,
         "initiative": 11,
         "weaponskill": 5,
         "stamina": 7,

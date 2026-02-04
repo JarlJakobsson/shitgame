@@ -11,7 +11,7 @@ class GladiatorCreate(BaseModel):
     race: str
     health: int = 0
     strength: int = 0
-    agility: int = 0
+    dodge: int = 0
     initiative: int = 0
     weaponskill: int = 0
     stamina: int = 0
@@ -27,7 +27,7 @@ class GladiatorResponse(BaseModel):
     current_health: int
     max_health: int
     strength: int
-    agility: int
+    dodge: int
     gold: int
     wins: int
     losses: int

@@ -17,7 +17,7 @@ export interface Gladiator {
   current_health: number;
   max_health: number;
   strength: number;
-  agility: number;
+  dodge: number;
   gold: number;
   wins: number;
   losses: number;
@@ -29,7 +29,7 @@ export interface Race {
   initiative: number;
   health: number;
   strength: number;
-  agility: number;
+  dodge: number;
   description: string;
   origin?: string;
   specialty?: string;
@@ -41,7 +41,7 @@ export interface StatPlan {
   strength: number;
   health: number;
   stamina: number;
-  agility: number;
+  dodge: number;
   initiative: number;
   weaponskill: number;
 }

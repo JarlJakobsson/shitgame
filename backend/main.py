@@ -68,7 +68,7 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     stats = {
         "health": gladiator_data.health,
         "strength": gladiator_data.strength,
-        "agility": gladiator_data.agility,
+        "dodge": gladiator_data.dodge,
         "initiative": gladiator_data.initiative,
         "weaponskill": gladiator_data.weaponskill,
         "stamina": gladiator_data.stamina,
@@ -106,7 +106,7 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     current_gladiator.max_health = max_health
     current_gladiator.current_health = max_health
     current_gladiator.strength = stats_with_bonus["strength"]
-    current_gladiator.agility = stats_with_bonus["agility"]
+    current_gladiator.dodge = stats_with_bonus["dodge"]
     current_gladiator.initiative = stats_with_bonus["initiative"]
     current_gladiator.weaponskill = stats_with_bonus["weaponskill"]
     current_gladiator.stamina = stats_with_bonus["stamina"]
@@ -130,7 +130,7 @@ def train_gladiator():
     
     current_gladiator.gold -= 10
     current_gladiator.strength += 1
-    current_gladiator.agility += 1
+    current_gladiator.dodge += 1
     current_gladiator.weaponskill += 1
     current_gladiator.max_health += 5
     current_gladiator.current_health = current_gladiator.max_health
@@ -201,11 +201,11 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
         opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race, use_race_stats=True)
         if difficulty == "Weak":
             opponent.strength = int(opponent.strength * 0.8)
-            opponent.agility = int(opponent.agility * 0.8)
+            opponent.dodge = int(opponent.dodge * 0.8)
             opponent.max_health = int(opponent.max_health * 0.9)
         elif difficulty == "Strong":
             opponent.strength = int(opponent.strength * 1.2)
-            opponent.agility = int(opponent.agility * 1.2)
+            opponent.dodge = int(opponent.dodge * 1.2)
             opponent.max_health = int(opponent.max_health * 1.1)
         opponent.current_health = opponent.max_health
 

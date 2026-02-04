@@ -56,7 +56,7 @@ class Game:
             if confirm == "y":
                 self.player_gladiator.gold -= 10
                 self.player_gladiator.strength += 1
-                self.player_gladiator.agility += 1
+                self.player_gladiator.dodge += 1
                 self.player_gladiator.defense += 1
                 self.player_gladiator.max_health += 5
                 self.player_gladiator.current_health = self.player_gladiator.max_health
@@ -86,11 +86,11 @@ class Game:
         # Adjust opponent stats based on difficulty
         if difficulty == "Weak":
             opponent.strength = int(opponent.strength * 0.8)
-            opponent.agility = int(opponent.agility * 0.8)
+            opponent.dodge = int(opponent.dodge * 0.8)
             opponent.max_health = int(opponent.max_health * 0.9)
         elif difficulty == "Strong":
             opponent.strength = int(opponent.strength * 1.2)
-            opponent.agility = int(opponent.agility * 1.2)
+            opponent.dodge = int(opponent.dodge * 1.2)
             opponent.max_health = int(opponent.max_health * 1.1)
         
         opponent.current_health = opponent.max_health

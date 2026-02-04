@@ -17,7 +17,7 @@ function App() {
     strength: 0,
     health: 0,
     stamina: 0,
-    agility: 0,
+    dodge: 0,
     initiative: 0,
     weaponskill: 0,
   });
@@ -48,7 +48,7 @@ function App() {
       strength: 0,
       health: 0,
       stamina: 0,
-      agility: 0,
+      dodge: 0,
       initiative: 0,
       weaponskill: 0,
     });

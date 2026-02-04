@@ -39,7 +39,7 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
     strength: '\uD83D\uDCAA',
     health: '\u2764\uFE0F',
     stamina: '\uD83D\uDCA8',
-    agility: '\u26A1',
+    dodge: '\u26A1',
     initiative: '\uD83C\uDFC3',
     weaponskill: '\uD83D\uDDE1\uFE0F',
   };
@@ -53,7 +53,7 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
       { key: 'strength', label: 'Strength' },
       { key: 'health', label: 'Health' },
       { key: 'stamina', label: 'Stamina' },
-      { key: 'agility', label: 'Agility' },
+      { key: 'dodge', label: 'Dodge' },
       { key: 'initiative', label: 'Initiative' },
       { key: 'weaponskill', label: 'Weaponskill' },
     ] as const,

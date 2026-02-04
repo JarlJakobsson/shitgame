@@ -17,7 +17,7 @@ class Character:
         self.max_health: int = 0
         self.current_health: int = 0
         self.strength: int = 0
-        self.agility: int = 0
+        self.dodge: int = 0
         self.initiative: int = 0
         self.weaponskill: int = 0
         self.stamina: int = 0
@@ -29,7 +29,7 @@ class Character:
             "max_health": self.max_health,
             "current_health": self.current_health,
             "strength": self.strength,
-            "agility": self.agility,
+            "dodge": self.dodge,
             "initiative": self.initiative,
             "weaponskill": self.weaponskill,
             "stamina": self.stamina,
@@ -67,7 +67,7 @@ class Gladiator(Character):
         self.max_health = race_data["health"]
         self.current_health = race_data["health"]
         self.strength = race_data["strength"]
-        self.agility = race_data["agility"]
+        self.dodge = race_data["dodge"]
         self.initiative = race_data["initiative"]
         self.weaponskill = race_data["weaponskill"]
         self.stamina = race_data.get("stamina", max(1, race_data["health"] // 10))
@@ -93,7 +93,7 @@ class Gladiator(Character):
         print(f"Health: {self.current_health} / {self.max_health}")
         print(f"Stamina: {self.stamina}")
         print(f"Strength: {self.strength}")
-        print(f"Agility: {self.agility}")
+        print(f"Dodge: {self.dodge}")
         print(f"Initiative: {self.initiative}")
         print(f"Weaponskill: {self.weaponskill}")
         print(f"Wins: {self.wins}")
@@ -107,7 +107,7 @@ class Enemy(Character):
         self.max_health = stats["health"]
         self.current_health = stats["health"]
         self.strength = stats["strength"]
-        self.agility = stats["agility"]
+        self.dodge = stats["dodge"]
         self.initiative = stats["initiative"]
         self.weaponskill = stats["weaponskill"]
         self.stamina = stats["stamina"]
