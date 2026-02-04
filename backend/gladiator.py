@@ -47,7 +47,7 @@ class Character:
 
 # Gladiator subclass
 class Gladiator(Character):
-    def __init__(self, name: str, race: str = None):
+    def __init__(self, name: str, race: str = None, use_race_stats: bool = False):
         super().__init__(name)
         self.race = race
         # Gladiator-specific stats
@@ -56,7 +56,8 @@ class Gladiator(Character):
         self.gold: int = STARTING_GOLD
         self.wins: int = 0
         self.losses: int = 0
-        self.apply_race_stats()
+        if use_race_stats:
+            self.apply_race_stats()
 
     def apply_race_stats(self):
         if not self.race or self.race not in RACES:

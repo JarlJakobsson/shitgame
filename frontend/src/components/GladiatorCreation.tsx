@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import gameAPI from '../services/gameAPI';
+import gameAPI, { StatPlan } from '../services/gameAPI';
 import styles from './GladiatorCreation.module.css';
 
 interface GladiatorCreationProps {
   raceName: string;
+  stats: StatPlan;
   onGladiatorCreated: () => void;
 }
 
-export function GladiatorCreation({ raceName, onGladiatorCreated }: GladiatorCreationProps) {
+export function GladiatorCreation({ raceName, stats, onGladiatorCreated }: GladiatorCreationProps) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +22,7 @@ export function GladiatorCreation({ raceName, onGladiatorCreated }: GladiatorCre
 
     setLoading(true);
     try {
-      await gameAPI.createGladiator(name, raceName);
+      await gameAPI.createGladiator(name, raceName, stats);
       onGladiatorCreated();
     } catch (err) {
       setError('Failed to create gladiator');

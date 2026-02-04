@@ -1,10 +1,10 @@
 .container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1.5rem;
+  padding: 1rem 1rem 2rem;
 }
 
 .card {
@@ -12,8 +12,12 @@
   border: 2px solid #667eea;
   border-radius: 12px;
   padding: 2rem;
-  max-width: 760px;
   width: 100%;
+  max-width: 2000px;
+  min-height: calc(100vh - 2rem);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -34,19 +38,53 @@
   font-size: 1rem;
 }
 
+.layoutGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(420px, 1.4fr) minmax(260px, 1fr);
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.sideCard,
+.loreCard {
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.imageCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.centerColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.plannerCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .image {
   display: block;
-  width: 220px;
-  height: 220px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  margin: 0 auto 1.5rem auto;
+  margin: 0 auto;
 }
 
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .section {
@@ -69,34 +107,244 @@
   font-size: 0.95rem;
 }
 
-.stats {
+.prosCons {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
 }
 
-.stat {
+.prosColumn h3,
+.consColumn h3 {
+  color: #ffd700;
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.tag {
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(102, 126, 234, 0.5);
   border-radius: 8px;
-  padding: 0.75rem 1rem;
-  text-align: center;
+  padding: 0.6rem 0.9rem;
+  color: #ddd;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.statLabel {
-  display: block;
-  color: #b7b7b7;
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.tag:last-child {
+  margin-bottom: 0;
 }
 
-.statValue {
-  color: #ffd700;
-  font-size: 1.2rem;
+.proTag,
+.conTag {
   font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.proTag {
+  color: #4CAF50;
+}
+
+.conTag {
+  color: #ff6b6b;
+}
+
+.racials {
+  margin-top: 1.5rem;
+}
+
+.racials h3 {
+  color: #ffd700;
+  margin: 0 0 0.75rem 0;
+  font-size: 1.05rem;
+}
+
+.racialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.racialCard {
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.racialTitle {
+  color: #ffd700;
+  margin: 0 0 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+.racialDesc {
+  color: #d5d5d5;
+  margin: 0;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+
+.racialBonus {
+  margin-top: 1.5rem;
+}
+
+.racialBonus h3 {
+  color: #ffd700;
+  margin: 0 0 0.75rem 0;
+  font-size: 1.05rem;
+}
+
+.bonusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.bonusCard {
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bonusStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #ddd;
+  font-size: 0.95rem;
+}
+
+.bonusIcon {
+  font-size: 1rem;
+}
+
+.bonusValue {
+  color: #ffd700;
+  font-weight: 700;
+}
+
+.planner {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(102, 126, 234, 0.5);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.75rem;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.plannerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.plannerHeader h3 {
+  color: #ffd700;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.pointsRemaining {
+  color: #ffd700;
+  font-weight: 700;
+}
+
+.plannerGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.plannerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.plannerLabel {
+  color: #d7d7d7;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.plannerIcon {
+  font-size: 1rem;
+}
+
+.plannerBonus {
+  margin-left: auto;
+  color: #ffd700;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.plannerControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controlButton {
+  min-width: 36px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.controlButtonLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+
+.controlButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.controlButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.statInput {
+  width: 64px;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(102, 126, 234, 0.7);
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
 .actions {
@@ -142,11 +390,21 @@
 @media (max-width: 700px) {
   .card {
     padding: 1.5rem;
+    min-height: unset;
+  }
+
+  .layoutGrid {
+    grid-template-columns: 1fr;
   }
 
   .image {
-    width: 180px;
-    height: 180px;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+  }
+
+  .plannerGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .actions {

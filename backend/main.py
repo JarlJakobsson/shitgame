@@ -63,8 +63,31 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     
     if not gladiator_data.name.strip():
         raise HTTPException(status_code=400, detail="Name cannot be empty")
-    
+
+    stats = {
+        "health": gladiator_data.health,
+        "strength": gladiator_data.strength,
+        "agility": gladiator_data.agility,
+        "initiative": gladiator_data.initiative,
+        "weaponskill": gladiator_data.weaponskill,
+        "stamina": gladiator_data.stamina,
+    }
+
+    total_points = sum(stats.values())
+    if total_points > 150:
+        raise HTTPException(status_code=400, detail="Stat points exceed 150")
+
+    if any(value < 0 for value in stats.values()):
+        raise HTTPException(status_code=400, detail="Stat points cannot be negative")
+
     current_gladiator = Gladiator(gladiator_data.name, gladiator_data.race)
+    current_gladiator.max_health = stats["health"]
+    current_gladiator.current_health = stats["health"]
+    current_gladiator.strength = stats["strength"]
+    current_gladiator.agility = stats["agility"]
+    current_gladiator.initiative = stats["initiative"]
+    current_gladiator.weaponskill = stats["weaponskill"]
+    current_gladiator.stamina = stats["stamina"]
     return GladiatorResponse(**current_gladiator.to_dict())
 
 
@@ -153,7 +176,7 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
             raise HTTPException(status_code=500, detail="No races available for opponent selection")
         opponent_race = random.choice(opponent_races)
         difficulty = random.choice(["Weak", "Normal", "Strong"])
-        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race)
+        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race, use_race_stats=True)
         if difficulty == "Weak":
             opponent.strength = int(opponent.strength * 0.8)
             opponent.agility = int(opponent.agility * 0.8)
