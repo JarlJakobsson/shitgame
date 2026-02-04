@@ -3,6 +3,7 @@
 # ============================================
 
 import random
+import math
 
 
 class Combat:
@@ -20,6 +21,40 @@ class Combat:
         self.opponent = opponent
         self.round = 0
         self.battle_log = []
+        self.player_stamina = max(0, int(player.stamina))
+        self.opponent_stamina = max(0, int(opponent.stamina))
+
+    @staticmethod
+    def _required_stamina_for_round(round_number):
+        if round_number <= 2:
+            return 0
+        # Power curve fit to the provided table (approximate).
+        a = 1.3081954270168985
+        b = 1.4465293529691468
+        return max(0, int(round(a * (round_number ** b))))
+
+    def _drain_stamina_end_of_round(self, round_info):
+        required_now = self._required_stamina_for_round(self.round)
+        required_prev = self._required_stamina_for_round(self.round - 1)
+        drain = max(0, required_now - required_prev)
+
+        self.player_stamina = max(0, self.player_stamina - drain)
+        self.opponent_stamina = max(0, self.opponent_stamina - drain)
+
+        round_info["actions"].append(
+            f"Stamina drain {drain}: {self.player.name}={self.player_stamina}, {self.opponent.name}={self.opponent_stamina}"
+        )
+
+        # Check in order: player 1 then player 2.
+        if self.player_stamina <= 0:
+            round_info["actions"].append(f"{self.player.name} collapses from exhaustion!")
+            round_info["winner"] = "opponent"
+            return True
+        if self.opponent_stamina <= 0:
+            round_info["actions"].append(f"{self.opponent.name} collapses from exhaustion!")
+            round_info["winner"] = "player"
+            return True
+        return False
     
     def calculate_attack_damage(self, attacker, defender):
         """
@@ -102,6 +137,9 @@ class Combat:
         # Check if defender is defeated
         if not second_defender.is_alive():
             round_info["winner"] = "player" if second_attacker == self.player else "opponent"
+            return round_info
+
+        if self._drain_stamina_end_of_round(round_info):
             return round_info
 
         round_info["winner"] = None
