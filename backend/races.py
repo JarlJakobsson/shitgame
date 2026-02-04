@@ -27,7 +27,8 @@ RACES = {
             { "stat": "Health", "value": "+10%" },
             { "stat": "Stamina", "value": "+10%" },
             { "stat": "Dodge", "value": "+10%" },
-            { "stat": "Initiative", "value": "+10%" }
+            { "stat": "Initiative", "value": "+10%" },
+            { "stat": "Weaponskill", "value": "+10%" }
         ]
     },
     "Orc": {

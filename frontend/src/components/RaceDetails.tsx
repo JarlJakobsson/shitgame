@@ -43,6 +43,14 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
     initiative: '\uD83C\uDFC3',
     weaponskill: '\uD83D\uDDE1\uFE0F',
   };
+  const bonusLabels: Record<string, string> = {
+    strength: 'Strength',
+    health: 'Health',
+    stamina: 'Stamina',
+    dodge: 'Dodge',
+    initiative: 'Initiative',
+    weaponskill: 'Weaponskill',
+  };
 
   useEffect(() => {
     setStats(initialStats);
@@ -64,7 +72,9 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
     const entries = race.racial_bonus || [];
     const mapped: Record<string, string> = {};
     entries.forEach((entry) => {
-      mapped[entry.stat.toLowerCase()] = entry.value;
+      const rawKey = entry.stat.toLowerCase();
+      const normalizedKey = rawKey === 'agility' ? 'dodge' : rawKey;
+      mapped[normalizedKey] = entry.value;
     });
     return mapped;
   }, [race.racial_bonus]);
@@ -150,13 +160,15 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
                   <h3>Racial Bonus</h3>
                   <div className={styles.bonusGrid}>
                     {race.racial_bonus.map((bonus, index) => {
-                      const key = bonus.stat.toLowerCase();
+                      const rawKey = bonus.stat.toLowerCase();
+                      const key = rawKey === 'agility' ? 'dodge' : rawKey;
                       const icon = bonusIcons[key];
+                      const label = bonusLabels[key] || bonus.stat;
                       return (
                         <div key={`${bonus.stat}-${index}`} className={styles.bonusCard}>
                           <span className={styles.bonusStat}>
                             {icon && <span className={styles.bonusIcon}>{icon}</span>}
-                            {bonus.stat}
+                            {label}
                           </span>
                           <span className={styles.bonusValue}>{bonus.value}</span>
                         </div>
