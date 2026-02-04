@@ -3,17 +3,36 @@ import gameAPI from '../services/gameAPI';
 import styles from './Arena.module.css';
 import humanImg from '../assets/human.png';
 import orcImg from '../assets/orc.png';
+import banditImg from '../assets/bandit.png';
+import darkKnightImg from '../assets/darkknight.png';
+import goblinImg from '../assets/goblin.png';
+import minotaurImg from '../assets/minotaur.png';
+import skeletonImg from '../assets/skeleton.png';
+import slimeImg from '../assets/slime.png';
+
+const enemyImages: Record<string, string> = {
+  human: humanImg,
+  orc: orcImg,
+  bandit: banditImg,
+  'dark knight': darkKnightImg,
+  goblin: goblinImg,
+  minotaur: minotaurImg,
+  skeleton: skeletonImg,
+  slime: slimeImg,
+};
 
 interface ArenaProps {
   onBattleEnd: () => void;
-  playerRace: 'human' | 'orc';
+  playerRace: string;
 }
 
 interface CombatState {
   player_name: string;
   opponent_name: string;
   player_health: number;
+  player_max_health: number;
   opponent_health: number;
+  opponent_max_health: number;
   round: number;
   actions: string[];
 }
@@ -48,7 +67,9 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
         player_name: result.player.name,
         opponent_name: result.opponent.name,
         player_health: result.player.current_health,
+        player_max_health: result.player.max_health,
         opponent_health: result.opponent.current_health,
+        opponent_max_health: result.opponent.max_health,
         round: 0,
         actions: [],
       };
@@ -102,20 +123,23 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
         <div className={styles.menu}>
           <h2>Choose Your Opponent</h2>
           <ul className={styles.enemyList}>
-            {Object.entries(enemies).map(([name, data]) => (
+            {Object.entries(enemies).map(([name, data]) => {
+              const imageKey = name.toLowerCase();
+              const enemyImage = enemyImages[imageKey];
+              return (
               <li key={name} className={styles.enemyItem}>
                 <button className={styles.button} onClick={() => handleEnemySelect(name)}>
-                  {/* Show image if enemy is orc or human */}
-                  {name.toLowerCase() === 'orc' && (
-                    <img src={orcImg} alt="Orc" style={{ width: 48, height: 48, marginRight: 8, verticalAlign: 'middle' }} />
-                  )}
-                  {name.toLowerCase() === 'human' && (
-                    <img src={humanImg} alt="Human" style={{ width: 48, height: 48, marginRight: 8, verticalAlign: 'middle' }} />
+                  {enemyImage && (
+                    <img
+                      src={enemyImage}
+                      alt={name}
+                      style={{ width: 48, height: 48, marginRight: 8, verticalAlign: 'middle' }}
+                    />
                   )}
                   <strong>{name}</strong>: {data.description}
                 </button>
               </li>
-            ))}
+            )})}
           </ul>
         </div>
       </div>
@@ -129,80 +153,123 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
   return (
     <div className={styles.container}>
       <div className={styles.arena}>
-        <h2>⚔️ ARENA BATTLE ⚔️</h2>
-        <div className={styles.fighters}>
+        <div className={styles.arenaHeader}>
+          <h2> BATTLE </h2>
+        </div>
+
+        <div className={styles.arenaGrid}>
           <div className={styles.fighter}>
-            {playerRace === 'orc' && (
-              <img src={orcImg} alt="Orc" style={{ width: 48, height: 48, marginBottom: 8 }} />
-            )}
-            {playerRace === 'human' && (
-              <img src={humanImg} alt="Human" style={{ width: 48, height: 48, marginBottom: 8 }} />
+            {enemyImages[playerRace.toLowerCase()] && (
+              <img
+                src={enemyImages[playerRace.toLowerCase()]}
+                alt={playerRace}
+                className={styles.fighterImage}
+              />
             )}
             <h3>{combatState.player_name}</h3>
             <div className={styles.healthBar}>
               <div
                 className={styles.health}
-                style={{ width: `${Math.max(0, (combatState.player_health / 100) * 100)}%` }}
+                style={{ width: `${Math.max(0, (combatState.player_health / Math.max(1, combatState.player_max_health)) * 100)}%` }}
               />
             </div>
-            <span>{combatState.player_health} / 100</span>
+            <span>{combatState.player_health} / {combatState.player_max_health}</span>
           </div>
 
-          <div className={styles.vs}>VS</div>
+          <div className={styles.centerColumn}>
+            <div className={styles.centerCard}>
+              <div className={styles.vsBadge}>VS</div>
+
+              <div className={styles.battleLog}>
+                <div className={styles.log}>
+                {(battleResult && battleResult.battle_log
+                  ? battleResult.battle_log
+                  : combatState?.actions || []
+                ).map((entry, idx) => {
+                  const isRoundMarker = typeof entry === 'string' && entry.startsWith('Round ');
+                  const entryClassName = isRoundMarker
+                    ? `${styles.logEntry} ${styles.roundMarker}`
+                    : styles.logEntry;
+
+                  if (typeof entry !== 'string') {
+                    return (
+                      <div key={idx} className={entryClassName}>
+                        {String(entry)}
+                      </div>
+                    );
+                  }
+
+                  if (!combatState?.player_name) {
+                    return (
+                      <div key={idx} className={entryClassName}>
+                        {entry}
+                      </div>
+                    );
+                  }
+
+                  const name = combatState.player_name;
+                  const segments = entry.split(name);
+
+                  return (
+                    <div key={idx} className={entryClassName}>
+                      <span>
+                        {segments.map((segment, segmentIndex) => (
+                          <span key={segmentIndex}>
+                            {segment}
+                            {segmentIndex < segments.length - 1 && <strong>{name}</strong>}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+              {battleEnded && battleResult && (
+                <div className={styles.result}>
+                  <h3>
+                    {battleResult.result === 'victory'
+                      ? `${'\uD83C\uDFC6'} VICTORY! ${'\uD83C\uDFC6'}`
+                      : `${'\uD83D\uDC80'} DEFEAT ${'\uD83D\uDC80'}`}
+                  </h3>
+                  <p>Gold gained: +{battleResult.reward_gold}</p>
+                  <p>Experience gained: +{battleResult.reward_exp}</p>
+                </div>
+              )}
+
+              <div className={styles.actions}>
+                {battleEnded ? (
+                  <button
+                    className={styles.button}
+                    onClick={onBattleEnd}
+                  >
+                    Return to Dashboard
+                  </button>
+                ) : (
+                  <div>Simulating battle...</div>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className={styles.fighter}>
-            {/* Only show opponent name, not image */}
+            {enemyImages[combatState.opponent_name.toLowerCase()] && (
+              <img
+                src={enemyImages[combatState.opponent_name.toLowerCase()]}
+                alt={combatState.opponent_name}
+                className={styles.fighterImage}
+              />
+            )}
             <h3>{combatState.opponent_name}</h3>
             <div className={styles.healthBar}>
               <div
                 className={styles.health}
-                style={{ width: `${Math.max(0, (combatState.opponent_health / 100) * 100)}%` }}
+                style={{ width: `${Math.max(0, (combatState.opponent_health / Math.max(1, combatState.opponent_max_health)) * 100)}%` }}
               />
             </div>
-            <span>{combatState.opponent_health} / 100</span>
+            <span>{combatState.opponent_health} / {combatState.opponent_max_health}</span>
           </div>
-        </div>
-
-        <div className={styles.battleLog}>
-          <div className={styles.log}>
-            {(battleResult && battleResult.battle_log
-              ? battleResult.battle_log
-              : combatState?.actions || []
-            ).map((entry, idx) => (
-              <div
-                key={idx}
-                className={styles.logEntry}
-                dangerouslySetInnerHTML={{
-                  __html: combatState && typeof entry === 'string'
-                    ? entry.replace(new RegExp(combatState.player_name, 'g'), `<strong>${combatState.player_name}</strong>`)
-                    : entry
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {battleEnded && battleResult && (
-          <div className={styles.result}>
-            <h3>{battleResult.result === 'victory' ? '🏆 VICTORY! 🏆' : '💀 DEFEAT 💀'}</h3>
-            <p>Gold: {battleResult.gladiator.gold}</p>
-            <p>Experience: {battleResult.gladiator.experience}</p>
-            <p>Gold gained: +{battleResult.reward_gold}</p>
-            <p>Experience gained: +{battleResult.reward_exp}</p>
-          </div>
-        )}
-
-        <div className={styles.actions}>
-          {battleEnded ? (
-            <button
-              className={styles.button}
-              onClick={onBattleEnd}
-            >
-              Return to Dashboard
-            </button>
-          ) : (
-            <div>Simulating battle...</div>
-          )}
         </div>
       </div>
     </div>
