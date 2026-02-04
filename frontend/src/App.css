@@ -20,6 +20,20 @@ body {
   height: 100%;
 }
 
+.app__error {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffd700;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #ffd700;
+  z-index: 999;
+  font-size: 0.9rem;
+}
+
 button {
   font-family: inherit;
 }

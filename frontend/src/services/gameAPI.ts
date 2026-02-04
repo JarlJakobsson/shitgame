@@ -24,6 +24,7 @@ export interface Gladiator {
   wins: number;
   losses: number;
   stamina: number;
+  stat_points: number;
 }
 
 export interface Race {
@@ -92,6 +93,11 @@ export const gameAPI = {
 
   finishCombat: async () => {
     const response = await api.post('/combat/finish');
+    return response.data;
+  },
+
+  allocateStats: async (stats: StatPlan): Promise<Gladiator> => {
+    const response = await api.post('/gladiator/allocate', stats);
     return response.data;
   },
 };

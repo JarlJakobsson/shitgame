@@ -7,11 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import random
 import math
 
-from models import GladiatorCreate, GladiatorResponse, CombatRound, BattleResult
+from models import GladiatorCreate, GladiatorResponse, CombatRound, BattleResult, StatAllocation
 from gladiator import Gladiator
 from combat import Combat
 from races import RACES
 from enemies import ENEMIES, get_enemy
+from leveling import apply_experience
 # ============================================
 # GAME ENDPOINTS
 # ============================================
@@ -118,6 +119,49 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     return GladiatorResponse(**current_gladiator.to_dict())
 
 
+@app.post("/gladiator/allocate")
+def allocate_stat_points(allocation: StatAllocation):
+    """Allocate unspent stat points from leveling."""
+    if current_gladiator is None:
+        raise HTTPException(status_code=404, detail="No gladiator created")
+
+    points = {
+        "health": allocation.health,
+        "strength": allocation.strength,
+        "dodge": allocation.dodge,
+        "initiative": allocation.initiative,
+        "weaponskill": allocation.weaponskill,
+        "stamina": allocation.stamina,
+    }
+
+    if any(value < 0 for value in points.values()):
+        raise HTTPException(status_code=400, detail="Stat points cannot be negative")
+
+    total_points = sum(points.values())
+    if total_points <= 0:
+        raise HTTPException(status_code=400, detail="No stat points allocated")
+
+    if total_points > current_gladiator.stat_points:
+        raise HTTPException(status_code=400, detail="Not enough stat points")
+
+    health_points = points["health"]
+    if health_points > 0:
+        health_increase = int(math.floor(health_points * 1.5))
+        if health_increase > 0:
+            current_gladiator.max_health += health_increase
+            current_gladiator.current_health += health_increase
+
+    current_gladiator.strength += points["strength"]
+    current_gladiator.dodge += points["dodge"]
+    current_gladiator.initiative += points["initiative"]
+    current_gladiator.weaponskill += points["weaponskill"]
+    current_gladiator.stamina += points["stamina"]
+
+    current_gladiator.stat_points -= total_points
+
+    return GladiatorResponse(**current_gladiator.to_dict())
+
+
 @app.get("/gladiator")
 def get_gladiator():
     """Get current gladiator stats."""
@@ -139,7 +183,7 @@ def train_gladiator():
     current_gladiator.weaponskill += 1
     current_gladiator.max_health += 5
     current_gladiator.current_health = current_gladiator.max_health
-    current_gladiator.experience += 10
+    apply_experience(current_gladiator, 10)
     
     return GladiatorResponse(**current_gladiator.to_dict())
 
@@ -264,10 +308,10 @@ def finish_combat():
     if player.is_alive():
         # Determine difficulty
         difficulty = "Strong" if "Strong" in opponent.name else ("Weak" if "Weak" in opponent.name else "Normal")
-        reward_exp = 50 if difficulty == "Strong" else (30 if difficulty == "Normal" else 20)
+        reward_exp = 60 if difficulty == "Strong" else (45 if difficulty == "Normal" else 30)
         reward_gold = 30 if difficulty == "Strong" else (20 if difficulty == "Normal" else 10)
 
-        player.experience += reward_exp
+        apply_experience(player, reward_exp)
         player.gold += reward_gold
         player.wins += 1
         # Add gold/exp to combat log

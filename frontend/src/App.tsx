@@ -1,158 +1,264 @@
-import { useState, useEffect } from 'react';
-import gameAPI, { Gladiator, Race, StatPlan } from './services/gameAPI';
-import { MainMenu } from './components/MainMenu';
-import { RaceSelection } from './components/RaceSelection';
-import { RaceDetails } from './components/RaceDetails';
-import { GladiatorCreation } from './components/GladiatorCreation';
-import { GameDashboard } from './components/GameDashboard';
-import { Arena } from './components/Arena';
-import './App.css';
+import { useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
+import './App.css'
+import gameAPI, { Gladiator, Race, StatPlan } from './services/gameAPI'
+import { MainMenu } from './components/MainMenu'
+import { RaceSelection } from './components/RaceSelection'
+import { RaceDetails } from './components/RaceDetails'
+import { GladiatorCreation } from './components/GladiatorCreation'
+import { GameDashboard } from './components/GameDashboard'
+import { Arena } from './components/Arena'
+import { LevelUpPlanner } from './components/LevelUpPlanner'
 
-type GameState = 'menu' | 'race-selection' | 'race-details' | 'gladiator-creation' | 'dashboard' | 'arena';
+type View =
+  | 'menu'
+  | 'raceSelection'
+  | 'raceDetails'
+  | 'gladiatorCreation'
+  | 'dashboard'
+  | 'arena'
+  | 'levelUp'
 
-function App() {
-  const [gameState, setGameState] = useState<GameState>('menu');
-  const [selectedRace, setSelectedRace] = useState<string | null>(null);
-  const [plannedStats, setPlannedStats] = useState<StatPlan>({
-    strength: 0,
-    health: 0,
-    stamina: 0,
-    dodge: 0,
-    initiative: 0,
-    weaponskill: 0,
-  });
-  const [gladiator, setGladiator] = useState<Gladiator | null>(null);
-  const [races, setRaces] = useState<Record<string, Race>>({});
-  const [loading, setLoading] = useState(false);
+const DEFAULT_STATS: StatPlan = {
+  strength: 0,
+  health: 0,
+  stamina: 0,
+  dodge: 0,
+  initiative: 0,
+  weaponskill: 0,
+}
+
+export default function App() {
+  const [view, setView] = useState<View>('menu')
+  const [races, setRaces] = useState<Record<string, Race>>({})
+  const [selectedRaceName, setSelectedRaceName] = useState<string | null>(null)
+  const [selectedStats, setSelectedStats] = useState<StatPlan>(DEFAULT_STATS)
+  const [gladiator, setGladiator] = useState<Gladiator | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    loadRaces();
-  }, []);
+    const bootstrap = async () => {
+      await Promise.all([loadRaces(), loadGladiator()])
+    }
+    void bootstrap()
+  }, [])
 
   const loadRaces = async () => {
     try {
-      const racesData = await gameAPI.getRaces();
-      setRaces(racesData);
+      const data = await gameAPI.getRaces()
+      setRaces(data)
     } catch (err) {
-      console.error('Failed to load races:', err);
+      setError('Failed to load races.')
     }
-  };
+  }
+
+  const loadGladiator = async () => {
+    try {
+      const data = await gameAPI.getGladiator()
+      setGladiator(data)
+      setView('dashboard')
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        setView('menu')
+        return
+      }
+      setError('Failed to load gladiator.')
+    }
+  }
+
+  const selectedRace = useMemo(() => {
+    if (!selectedRaceName) {
+      return null
+    }
+    return races[selectedRaceName] || null
+  }, [races, selectedRaceName])
 
   const handleCreateGladiator = () => {
-    setGameState('race-selection');
-  };
+    setError('')
+    setView('raceSelection')
+  }
 
-  const handleRaceSelected = (race: string) => {
-    setSelectedRace(race);
-    setPlannedStats({
-      strength: 0,
-      health: 0,
-      stamina: 0,
-      dodge: 0,
-      initiative: 0,
-      weaponskill: 0,
-    });
-    setGameState('race-details');
-  };
+  const handleSelectRace = (raceName: string) => {
+    setSelectedRaceName(raceName)
+    setSelectedStats(DEFAULT_STATS)
+    setError('')
+    setView('raceDetails')
+  }
 
-  const handleRaceBack = () => {
-    setGameState('race-selection');
-  };
-
-  const handleRaceConfirm = (stats: StatPlan) => {
-    if (selectedRace) {
-      setPlannedStats(stats);
-      setGameState('gladiator-creation');
-    }
-  };
+  const handleConfirmRace = (stats: StatPlan) => {
+    setSelectedStats(stats)
+    setError('')
+    setView('gladiatorCreation')
+  }
 
   const handleGladiatorCreated = async () => {
-    const gladiatorData = await gameAPI.getGladiator();
-    setGladiator(gladiatorData);
-    setGameState('dashboard');
-  };
+    setLoading(true)
+    setError('')
+    try {
+      const data = await gameAPI.getGladiator()
+      setGladiator(data)
+      setView('dashboard')
+    } catch (err) {
+      setError('Failed to load gladiator.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleTrain = async () => {
-    setLoading(true);
+    setLoading(true)
+    setError('')
     try {
-      const updated = await gameAPI.trainGladiator();
-      setGladiator(updated);
+      const data = await gameAPI.trainGladiator()
+      setGladiator(data)
     } catch (err) {
-      console.error('Failed to train:', err);
+      setError('Failed to train gladiator.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleFight = () => {
-    setGameState('arena');
-  };
+    setError('')
+    setView('arena')
+  }
 
   const handleBattleEnd = async () => {
-    const updated = await gameAPI.getGladiator();
-    setGladiator(updated);
-    setGameState('dashboard');
-  };
+    setLoading(true)
+    setError('')
+    try {
+      const data = await gameAPI.getGladiator()
+      setGladiator(data)
+    } catch (err) {
+      setError('Failed to refresh gladiator after battle.')
+    } finally {
+      setLoading(false)
+      setView('dashboard')
+    }
+  }
 
   const handleLogout = () => {
-    setGameState('menu');
-    setGladiator(null);
-    setSelectedRace(null);
-  };
+    setGladiator(null)
+    setSelectedRaceName(null)
+    setSelectedStats(DEFAULT_STATS)
+    setError('')
+    setView('menu')
+  }
 
-  return (
-    <div className="app">
-      {gameState === 'menu' && (
-        <MainMenu
-          onCreateGladiator={handleCreateGladiator}
-          onQuit={() => {}}
-        />
-      )}
+  const handleQuit = () => {
+    handleLogout()
+  }
 
-      {gameState === 'race-selection' && (
-        <RaceSelection races={races} onSelectRace={handleRaceSelected} />
-      )}
+  const handleAllocateStats = () => {
+    if (gladiator && gladiator.stat_points > 0) {
+      setError('')
+      setView('levelUp')
+    }
+  }
 
-      {gameState === 'race-details' && selectedRace && races[selectedRace] && (
+  const handleConfirmAllocateStats = async (stats: StatPlan) => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await gameAPI.allocateStats(stats)
+      setGladiator(data)
+      setView('dashboard')
+    } catch (err) {
+      setError('Failed to allocate stats.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  let content = (
+    <MainMenu onCreateGladiator={handleCreateGladiator} onQuit={handleQuit} />
+  )
+
+  if (view === 'raceSelection') {
+    content = <RaceSelection races={races} onSelectRace={handleSelectRace} />
+  } else if (view === 'raceDetails') {
+    if (selectedRaceName && selectedRace) {
+      content = (
         <RaceDetails
-          raceName={selectedRace}
-          race={races[selectedRace]}
-          onBack={handleRaceBack}
-          onConfirm={handleRaceConfirm}
-          initialStats={plannedStats}
+          raceName={selectedRaceName}
+          race={selectedRace}
+          initialStats={selectedStats}
+          onConfirm={handleConfirmRace}
+          onBack={() => setView('raceSelection')}
         />
-      )}
-
-      {gameState === 'gladiator-creation' && selectedRace && (
+      )
+    } else {
+      content = <RaceSelection races={races} onSelectRace={handleSelectRace} />
+    }
+  } else if (view === 'gladiatorCreation') {
+    if (selectedRaceName) {
+      content = (
         <GladiatorCreation
-          raceName={selectedRace}
-          stats={plannedStats}
+          raceName={selectedRaceName}
+          stats={selectedStats}
           onGladiatorCreated={handleGladiatorCreated}
         />
-      )}
-
-      {gameState === 'dashboard' && gladiator && (
+      )
+    } else {
+      content = <RaceSelection races={races} onSelectRace={handleSelectRace} />
+    }
+  } else if (view === 'dashboard') {
+    if (gladiator) {
+      content = (
         <GameDashboard
           gladiator={gladiator}
           onTrain={handleTrain}
           onFight={handleFight}
+          onAllocateStats={handleAllocateStats}
           onLogout={handleLogout}
           loading={loading}
         />
-      )}
-
-      {gameState === 'arena' && gladiator && (
-        <Arena
-          onBattleEnd={handleBattleEnd}
-          playerRace={
-            gladiator.race && typeof gladiator.race === 'string'
-              ? gladiator.race.toLowerCase()
-              : 'human'
-          }
+      )
+    } else {
+      content = (
+        <MainMenu
+          onCreateGladiator={handleCreateGladiator}
+          onQuit={handleQuit}
         />
-      )}
-    </div>
-  );
-}
+      )
+    }
+  } else if (view === 'arena') {
+    if (gladiator) {
+      content = (
+        <Arena onBattleEnd={handleBattleEnd} playerRace={gladiator.race} />
+      )
+    } else {
+      content = (
+        <MainMenu
+          onCreateGladiator={handleCreateGladiator}
+          onQuit={handleQuit}
+        />
+      )
+    }
+  } else if (view === 'levelUp') {
+    if (gladiator) {
+      content = (
+        <LevelUpPlanner
+          pointsAvailable={gladiator.stat_points}
+          onConfirm={handleConfirmAllocateStats}
+          onCancel={() => setView('dashboard')}
+        />
+      )
+    } else {
+      content = (
+        <MainMenu
+          onCreateGladiator={handleCreateGladiator}
+          onQuit={handleQuit}
+        />
+      )
+    }
+  }
 
-export default App;
+  return (
+    <div className="app">
+      {error && <div className="app__error">{error}</div>}
+      {content}
+    </div>
+  )
+}

@@ -4,6 +4,7 @@
 
 from races import RACES
 from constants import STARTING_GOLD, STARTING_EXPERIENCE
+from leveling import apply_experience
 
 
 
@@ -56,6 +57,7 @@ class Gladiator(Character):
         self.gold: int = STARTING_GOLD
         self.wins: int = 0
         self.losses: int = 0
+        self.stat_points: int = 0
         if use_race_stats:
             self.apply_race_stats()
 
@@ -79,7 +81,8 @@ class Gladiator(Character):
             "experience": self.experience,
             "gold": self.gold,
             "wins": self.wins,
-            "losses": self.losses
+            "losses": self.losses,
+            "stat_points": self.stat_points
         })
         return data
 
@@ -98,6 +101,9 @@ class Gladiator(Character):
         print(f"Weaponskill: {self.weaponskill}")
         print(f"Wins: {self.wins}")
         print(f"Losses: {self.losses}")
+
+    def add_experience(self, amount: int) -> dict:
+        return apply_experience(self, amount)
 
 # Enemy subclass
 class Enemy(Character):

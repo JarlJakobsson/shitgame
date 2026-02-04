@@ -1,0 +1,135 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: radial-gradient(circle at top, #2a2a3a, #111015 70%);
+}
+
+.card {
+  width: min(920px, 100%);
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  color: #ffd700;
+}
+
+.header h2 {
+  font-size: 1.6rem;
+}
+
+.pointsRemaining {
+  font-size: 1rem;
+  color: #f3f0b3;
+}
+
+.plannerGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.plannerRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.plannerLabel {
+  color: #e7e3c8;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.plannerControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controlButton {
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.12);
+  color: #ffd700;
+  width: 42px;
+  height: 38px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.controlButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.statInput {
+  width: 72px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  color: #f7f1c6;
+  text-align: center;
+}
+
+.actions {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: #ffd700;
+  color: #1d1b12;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2f2f2;
+}
+
+@media (max-width: 700px) {
+  .plannerRow {
+    grid-template-columns: 1fr;
+  }
+
+  .plannerControls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

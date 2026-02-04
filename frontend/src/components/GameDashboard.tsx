@@ -5,6 +5,7 @@ interface GameDashboardProps {
   gladiator: Gladiator;
   onTrain: () => void;
   onFight: () => void;
+  onAllocateStats: () => void;
   onLogout: () => void;
   loading: boolean;
 }
@@ -13,6 +14,7 @@ export function GameDashboard({
   gladiator,
   onTrain,
   onFight,
+  onAllocateStats,
   onLogout,
   loading,
 }: GameDashboardProps) {
@@ -89,6 +91,15 @@ export function GameDashboard({
         </div>
 
         <div className={styles.actions}>
+          {gladiator.stat_points > 0 && (
+            <button
+              className={styles.primaryButton}
+              onClick={onAllocateStats}
+              disabled={loading}
+            >
+              New Stats ({gladiator.stat_points})
+            </button>
+          )}
           <button
             className={styles.button}
             onClick={onTrain}

@@ -17,6 +17,15 @@ class GladiatorCreate(BaseModel):
     stamina: int = 0
 
 
+class StatAllocation(BaseModel):
+    health: int = 0
+    strength: int = 0
+    dodge: int = 0
+    initiative: int = 0
+    weaponskill: int = 0
+    stamina: int = 0
+
+
 class GladiatorResponse(BaseModel):
     weaponskill: int
     initiative: int
@@ -32,6 +41,7 @@ class GladiatorResponse(BaseModel):
     wins: int
     losses: int
     stamina: int
+    stat_points: int
 
 
 class CombatRound(BaseModel):

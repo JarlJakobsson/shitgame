@@ -60,7 +60,7 @@ class Game:
                 self.player_gladiator.defense += 1
                 self.player_gladiator.max_health += 5
                 self.player_gladiator.current_health = self.player_gladiator.max_health
-                self.player_gladiator.experience += 10
+                self.player_gladiator.add_experience(10)
                 print("\n✓ Training complete! Stats improved!")
             else:
                 print("\nTraining cancelled.")
@@ -103,9 +103,9 @@ class Game:
         print("\n" + "="*50)
         if winner == self.player_gladiator:
             print("✓ VICTORY!")
-            reward_exp = 50 if difficulty == "Strong" else (30 if difficulty == "Normal" else 20)
+            reward_exp = 60 if difficulty == "Strong" else (45 if difficulty == "Normal" else 30)
             reward_gold = 30 if difficulty == "Strong" else (20 if difficulty == "Normal" else 10)
-            self.player_gladiator.experience += reward_exp
+            self.player_gladiator.add_experience(reward_exp)
             self.player_gladiator.gold += reward_gold
             self.player_gladiator.wins += 1
             print(f"\nYou earned {reward_exp} experience and {reward_gold} gold!")
