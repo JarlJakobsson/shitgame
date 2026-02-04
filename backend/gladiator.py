@@ -2,6 +2,8 @@
 # GLADIATOR CLASS AND ATTRIBUTES
 # ============================================
 
+import math
+
 from races import RACES
 from constants import STARTING_GOLD, STARTING_EXPERIENCE
 from leveling import apply_experience
@@ -17,6 +19,7 @@ class Character:
         self.race: str = None
         self.max_health: int = 0
         self.current_health: int = 0
+        self.vitality: int = 0
         self.strength: int = 0
         self.dodge: int = 0
         self.initiative: int = 0
@@ -66,8 +69,10 @@ class Gladiator(Character):
             return
 
         race_data = RACES[self.race]
-        self.max_health = race_data["health"]
-        self.current_health = race_data["health"]
+        base_health = race_data["health"]
+        self.max_health = base_health
+        self.current_health = base_health
+        self.vitality = max(0, int(math.floor((base_health - 1) / 1.5)))
         self.strength = race_data["strength"]
         self.dodge = race_data["dodge"]
         self.initiative = race_data["initiative"]
@@ -82,7 +87,8 @@ class Gladiator(Character):
             "gold": self.gold,
             "wins": self.wins,
             "losses": self.losses,
-            "stat_points": self.stat_points
+            "stat_points": self.stat_points,
+            "vitality": self.vitality
         })
         return data
 

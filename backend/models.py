@@ -42,6 +42,7 @@ class GladiatorResponse(BaseModel):
     losses: int
     stamina: int
     stat_points: int
+    vitality: int
 
 
 class CombatRound(BaseModel):

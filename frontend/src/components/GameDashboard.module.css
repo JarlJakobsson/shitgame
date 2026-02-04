@@ -5,27 +5,35 @@
 }
 
 .dashboard {
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.82);
   border: 2px solid #667eea;
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 2rem;
+  color: #e7e7e7;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 2px solid #667eea;
 }
 
-.header h1 {
+.name {
   color: #ffd700;
-  margin: 0;
   font-size: 2rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: #cfcfcf;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .logoutBtn {
@@ -43,42 +51,86 @@
   transform: translateY(-2px);
 }
 
-.stats {
+.heroRow {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.portraitCard {
   background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.6);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.portrait {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  object-fit: contain;
+}
+
+.portraitFallback {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: #ffd700;
+}
+
+.statusCard,
+.healthCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  border-radius: 10px;
   padding: 1rem;
-  border-radius: 5px;
-  margin-bottom: 1.5rem;
+  display: grid;
+  gap: 0.6rem;
 }
 
 .statRow {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
-  color: #ccc;
+  color: #d7d7d7;
 }
 
 .statRow span:first-child {
   color: #ffd700;
-  font-weight: bold;
+  font-weight: 600;
 }
 
-.healthBar {
-  margin-bottom: 1.5rem;
+.unspent {
+  color: #7ef2ff;
+  font-weight: 700;
 }
 
-.label {
+.healthHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   color: #ffd700;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.healthValue {
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .barContainer {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   border: 1px solid #667eea;
-  border-radius: 5px;
-  height: 25px;
+  border-radius: 6px;
+  height: 28px;
   overflow: hidden;
-  margin-bottom: 0.3rem;
 }
 
 .bar {
@@ -87,9 +139,8 @@
   transition: width 0.3s ease;
 }
 
-.value {
-  text-align: center;
-  color: #aaa;
+.healthNote {
+  color: #b7b7b7;
   font-size: 0.9rem;
 }
 
@@ -132,11 +183,12 @@
 .actions {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .button,
 .primaryButton {
-  flex: 1;
+  flex: 1 1 200px;
   padding: 1rem;
   border: none;
   border-radius: 5px;
@@ -171,4 +223,28 @@
 .primaryButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .heroRow {
+    grid-template-columns: 1fr;
+  }
+
+  .attributes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .dashboard {
+    padding: 1.5rem;
+  }
+
+  .attributes {
+    grid-template-columns: 1fr;
+  }
 }

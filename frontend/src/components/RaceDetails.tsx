@@ -41,7 +41,7 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
   };
   const bonusLabels: Record<string, string> = {
     strength: 'Strength',
-    health: 'Health',
+    health: 'Vitality',
     stamina: 'Stamina',
     dodge: 'Dodge',
     initiative: 'Initiative',
@@ -55,7 +55,7 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
   const statRows = useMemo(
     () => [
       { key: 'strength', label: 'Strength' },
-      { key: 'health', label: 'Health' },
+      { key: 'health', label: 'Vitality' },
       { key: 'stamina', label: 'Stamina' },
       { key: 'dodge', label: 'Dodge' },
       { key: 'initiative', label: 'Initiative' },

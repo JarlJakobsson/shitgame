@@ -25,6 +25,7 @@ export interface Gladiator {
   losses: number;
   stamina: number;
   stat_points: number;
+  vitality: number;
 }
 
 export interface Race {

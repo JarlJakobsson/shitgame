@@ -4,6 +4,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from math import floor
 import random
 import math
 
@@ -108,7 +109,9 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     stats_with_bonus = {key: apply_bonus(value, key) for key, value in stats.items()}
 
     current_gladiator = Gladiator(gladiator_data.name, gladiator_data.race)
-    max_health = 1 + int(math.floor(stats_with_bonus["health"] * 1.5))
+    vitality = stats_with_bonus["health"]
+    max_health = 1 + int(floor(vitality * 1.5))
+    current_gladiator.vitality = vitality
     current_gladiator.max_health = max_health
     current_gladiator.current_health = max_health
     current_gladiator.strength = stats_with_bonus["strength"]
@@ -146,10 +149,10 @@ def allocate_stat_points(allocation: StatAllocation):
 
     health_points = points["health"]
     if health_points > 0:
-        health_increase = int(math.floor(health_points * 1.5))
-        if health_increase > 0:
-            current_gladiator.max_health += health_increase
-            current_gladiator.current_health += health_increase
+        old_max_health = current_gladiator.max_health
+        current_gladiator.vitality += health_points
+        current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
+        current_gladiator.current_health += current_gladiator.max_health - old_max_health
 
     current_gladiator.strength += points["strength"]
     current_gladiator.dodge += points["dodge"]
@@ -181,7 +184,8 @@ def train_gladiator():
     current_gladiator.strength += 1
     current_gladiator.dodge += 1
     current_gladiator.weaponskill += 1
-    current_gladiator.max_health += 5
+    current_gladiator.vitality += 3
+    current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
     current_gladiator.current_health = current_gladiator.max_health
     apply_experience(current_gladiator, 10)
     

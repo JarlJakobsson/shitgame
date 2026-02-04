@@ -1,5 +1,13 @@
 import { Gladiator } from '../services/gameAPI';
 import styles from './GameDashboard.module.css';
+import humanImg from '../assets/human.png';
+import orcImg from '../assets/orc.png';
+import goblinImg from '../assets/goblin.png';
+import minotaurImg from '../assets/minotaur.png';
+import skeletonImg from '../assets/skeleton.png';
+import banditImg from '../assets/bandit.png';
+import darkKnightImg from '../assets/darkknight.png';
+import slimeImg from '../assets/slime.png';
 
 interface GameDashboardProps {
   gladiator: Gladiator;
@@ -19,50 +27,90 @@ export function GameDashboard({
   loading,
 }: GameDashboardProps) {
   const healthPercentage = (gladiator.current_health / gladiator.max_health) * 100;
+  const raceKey = gladiator.race.toLowerCase();
+  const portraitMap: Record<string, string> = {
+    human: humanImg,
+    orc: orcImg,
+    goblin: goblinImg,
+    minotaur: minotaurImg,
+    skeleton: skeletonImg,
+    bandit: banditImg,
+    'dark knight': darkKnightImg,
+    slime: slimeImg,
+  };
+  const portrait = portraitMap[raceKey];
 
   return (
     <div className={styles.container}>
       <div className={styles.dashboard}>
         <div className={styles.header}>
-          <h1>{gladiator.name}</h1>
+          <div>
+            <div className={styles.name}>{gladiator.name}</div>
+            <div className={styles.subtitle}>{gladiator.race} Gladiator</div>
+          </div>
           <button className={styles.logoutBtn} onClick={onLogout}>
             Logout
           </button>
         </div>
 
-        <div className={styles.stats}>
-          <div className={styles.statRow}>
-            <span>Race:</span>
-            <span>{gladiator.race}</span>
+        <div className={styles.heroRow}>
+          <div className={styles.portraitCard}>
+            {portrait ? (
+              <img src={portrait} alt={gladiator.race} className={styles.portrait} />
+            ) : (
+              <div className={styles.portraitFallback}>?</div>
+            )}
           </div>
-          <div className={styles.statRow}>
-            <span>Level:</span>
-            <span>{gladiator.level}</span>
-          </div>
-          <div className={styles.statRow}>
-            <span>Experience:</span>
-            <span>{gladiator.experience}</span>
-          </div>
-          <div className={styles.statRow}>
-            <span>Gold:</span>
-            <span>{'\uD83D\uDCB0'} {gladiator.gold}</span>
-          </div>
-        </div>
 
-        <div className={styles.healthBar}>
-          <div className={styles.label}>Health</div>
-          <div className={styles.barContainer}>
-            <div
-              className={styles.bar}
-              style={{ width: `${healthPercentage}%` }}
-            />
+          <div className={styles.statusCard}>
+            <div className={styles.statRow}>
+              <span>Race</span>
+              <span>{gladiator.race}</span>
+            </div>
+            <div className={styles.statRow}>
+              <span>Level</span>
+              <span>{gladiator.level}</span>
+            </div>
+            <div className={styles.statRow}>
+              <span>Experience</span>
+              <span>{gladiator.experience}</span>
+            </div>
+            <div className={styles.statRow}>
+              <span>Gold</span>
+              <span>{'\uD83D\uDCB0'} {gladiator.gold}</span>
+            </div>
+            {gladiator.stat_points > 0 && (
+              <div className={styles.statRow}>
+                <span>Unspent</span>
+                <span className={styles.unspent}>{gladiator.stat_points} pts</span>
+              </div>
+            )}
           </div>
-          <div className={styles.value}>
-            {gladiator.current_health} / {gladiator.max_health}
+
+          <div className={styles.healthCard}>
+            <div className={styles.healthHeader}>
+              <span>HP</span>
+              <span className={styles.healthValue}>
+                {gladiator.current_health} / {gladiator.max_health}
+              </span>
+            </div>
+            <div className={styles.barContainer}>
+              <div
+                className={styles.bar}
+                style={{ width: `${healthPercentage}%` }}
+              />
+            </div>
+            <div className={styles.healthNote}>
+              Current HP: {gladiator.current_health}
+            </div>
           </div>
         </div>
 
         <div className={styles.attributes}>
+          <div className={styles.attribute}>
+            <span>{'\u2764\uFE0F'}</span>
+            <span>Vitality: {gladiator.vitality}</span>
+          </div>
           <div className={styles.attribute}>
             <span>{'\uD83D\uDDE1\uFE0F'}</span>
             <span>Weaponskill: {gladiator.weaponskill}</span>

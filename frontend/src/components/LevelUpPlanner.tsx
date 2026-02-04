@@ -27,7 +27,7 @@ export function LevelUpPlanner({
   const statRows = useMemo(
     () => [
       { key: 'strength', label: 'Strength' },
-      { key: 'health', label: 'Health' },
+      { key: 'health', label: 'Vitality' },
       { key: 'stamina', label: 'Stamina' },
       { key: 'dodge', label: 'Dodge' },
       { key: 'initiative', label: 'Initiative' },
