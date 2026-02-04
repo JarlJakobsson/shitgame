@@ -1,8 +1,10 @@
-import { useState } from 'react';
 import { Race } from '../services/gameAPI';
 import styles from './RaceSelection.module.css';
 import humanImg from '../assets/human.png';
 import orcImg from '../assets/orc.png';
+import goblinImg from '../assets/goblin.png';
+import minotaurImg from '../assets/minotaur.png';
+import skeletonImg from '../assets/skeleton.png';
 
 interface RaceSelectionProps {
   races: Record<string, Race>;
@@ -12,23 +14,14 @@ interface RaceSelectionProps {
 const raceImages: Record<string, string> = {
   human: humanImg,
   orc: orcImg,
+  goblin: goblinImg,
+  minotaur: minotaurImg,
+  skeleton: skeletonImg,
 };
 
 export function RaceSelection({ races, onSelectRace }: RaceSelectionProps) {
-  const [selectedRace, setSelectedRace] = useState<string | null>(null);
-
-  // Get available race keys, normalized to lowercase
-  const raceKeys = Object.keys(races).map(k => k.toLowerCase()).filter(k => k === 'human' || k === 'orc');
-
-  const handleSelect = (raceName: string) => {
-    setSelectedRace(raceName);
-  };
-
-  const handleConfirm = () => {
-    if (selectedRace) {
-      onSelectRace(selectedRace);
-    }
-  };
+  // Keep original keys for API compatibility, and render all races returned by the API.
+  const raceKeys = Object.keys(races);
 
   if (raceKeys.length === 0) {
     return <div className={styles.container}><div>Loading races...</div></div>;
@@ -39,38 +32,32 @@ export function RaceSelection({ races, onSelectRace }: RaceSelectionProps) {
       <div className={styles.card}>
         <h2>Select Your Race</h2>
         <div className={styles.raceList}>
-          {raceKeys.map(raceKey => (
+          {raceKeys.map(raceKey => {
+            const raceKeyLower = raceKey.toLowerCase();
+            return (
             <div
               key={raceKey}
-              className={`${styles.raceOption} ${selectedRace === raceKey ? styles.selected : ''}`}
-              onClick={() => handleSelect(raceKey)}
+              className={styles.raceOption}
+              onClick={() => onSelectRace(raceKey)}
             >
               <img
-                src={raceImages[raceKey]}
+                src={raceImages[raceKeyLower]}
                 alt={raceKey}
                 className={styles.raceImage}
               />
               <div className={styles.raceDetails}>
-                <h3>{raceKey.charAt(0).toUpperCase() + raceKey.slice(1)}</h3>
-                <p>{races[raceKey] ? races[raceKey].description : ''}</p>
+                <h3>{raceKey}</h3>
                 {races[raceKey] && (
                   <div className={styles.stats}>
-                    <span>❤️ {races[raceKey].health}</span>
-                    <span>💪 {races[raceKey].strength}</span>
-                    <span>⚡ {races[raceKey].agility}</span>
+                    <span>{'\u2764\uFE0F'} {races[raceKey].health}</span>
+                    <span>{'\uD83D\uDCAA'} {races[raceKey].strength}</span>
+                    <span>{'\u26A1'} {races[raceKey].agility}</span>
                   </div>
                 )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
-        <button
-          className={styles.button}
-          onClick={handleConfirm}
-          disabled={!selectedRace}
-        >
-          Confirm Selection
-        </button>
       </div>
     </div>
   );
