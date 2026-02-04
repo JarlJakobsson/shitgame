@@ -81,10 +81,10 @@ RACES = {
         "origin": "Cave warrens and overgrown ruins",
         "specialty": "Speed, trickery, and ambushes",
         "pros": [
-            "Sneaky hard hitters"
+            "Sneaky and precise fighters"
         ],
         "cons": [
-            "Too small to withstand punishment"
+            "Does not take hits well"
         ],
         "racials": [
             {
@@ -115,10 +115,10 @@ RACES = {
         "origin": "Ancient labyrinths of the south",
         "specialty": "Raw power and unstoppable charges",
         "pros": [
-            "Built for POWER."
+            "Built only for POWER."
         ],
         "cons": [
-            "Not built for much else"
+            "Built ONLY for power."
         ],
         "racials": [
             {
@@ -149,10 +149,10 @@ RACES = {
         "origin": "Forgotten crypts and ruined battlefields",
         "specialty": "Relentless endurance and fearlessness",
         "pros": [
-            "Never stops"
+            "Excellent cardio"
         ],
         "cons": [
-            "Can't build muscle without muscle"
+            "Hard to build muscle without muscle"
         ],
         "racials": [
             {
