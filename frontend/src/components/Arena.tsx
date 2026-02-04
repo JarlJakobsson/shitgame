@@ -23,7 +23,6 @@ export function Arena({ onBattleEnd }: ArenaProps) {
   const [battleResult, setBattleResult] = useState<{ result: string; gladiator: any; reward_gold: number; reward_exp: number; battle_log: string[] } | null>(null);
   const [enemyMenuOpen, setEnemyMenuOpen] = useState(true);
   const [enemies, setEnemies] = useState<Record<string, any>>({});
-  const [selectedEnemy, setSelectedEnemy] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch enemy list on mount
@@ -38,12 +37,7 @@ export function Arena({ onBattleEnd }: ArenaProps) {
     fetchEnemies();
   }, []);
 
-  const handleFightClick = () => {
-    setEnemyMenuOpen(true);
-  };
-
   const handleEnemySelect = async (enemyName: string) => {
-    setSelectedEnemy(enemyName);
     setEnemyMenuOpen(false);
     setLoading(true);
     try {
