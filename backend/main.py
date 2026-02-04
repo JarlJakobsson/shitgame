@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.types import Receive, Scope, Send
 from math import floor
+import time
 import random
 import math
 
@@ -44,7 +45,22 @@ class StripApiPrefixMiddleware:
 
 app.add_middleware(StripApiPrefixMiddleware)
 
-Base.metadata.create_all(bind=engine)
+def _init_db():
+    attempts = 0
+    while True:
+        try:
+            Base.metadata.create_all(bind=engine)
+            return
+        except Exception:
+            attempts += 1
+            if attempts >= 10:
+                raise
+            time.sleep(1)
+
+
+@app.on_event("startup")
+def on_startup():
+    _init_db()
 
 # List available enemies
 @app.get("/enemies")
