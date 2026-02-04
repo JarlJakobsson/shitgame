@@ -33,6 +33,8 @@ export interface Race {
   description: string;
   origin?: string;
   specialty?: string;
+  racials?: { title: string; description: string }[];
+  racial_bonus?: { stat: string; value: string }[];
 }
 
 export interface StatPlan {
