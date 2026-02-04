@@ -5,6 +5,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import random
+import math
 
 from models import GladiatorCreate, GladiatorResponse, CombatRound, BattleResult
 from gladiator import Gladiator
@@ -80,14 +81,35 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     if any(value < 0 for value in stats.values()):
         raise HTTPException(status_code=400, detail="Stat points cannot be negative")
 
+    # Apply racial bonus percentages (if any) after point allocation
+    racial_bonus_map = {}
+    race_data = RACES.get(gladiator_data.race, {})
+    for entry in race_data.get("racial_bonus", []):
+        stat_key = entry.get("stat", "").strip().lower()
+        value = entry.get("value", "").replace("%", "").strip()
+        try:
+            percent = float(value) / 100.0
+        except ValueError:
+            continue
+        racial_bonus_map[stat_key] = percent
+
+    def apply_bonus(base_value, stat_key):
+        percent = racial_bonus_map.get(stat_key, 0.0)
+        adjusted = base_value + (base_value * percent)
+        # Round down so partial points don't count
+        return max(0, int(math.floor(adjusted)))
+
+    stats_with_bonus = {key: apply_bonus(value, key) for key, value in stats.items()}
+
     current_gladiator = Gladiator(gladiator_data.name, gladiator_data.race)
-    current_gladiator.max_health = stats["health"]
-    current_gladiator.current_health = stats["health"]
-    current_gladiator.strength = stats["strength"]
-    current_gladiator.agility = stats["agility"]
-    current_gladiator.initiative = stats["initiative"]
-    current_gladiator.weaponskill = stats["weaponskill"]
-    current_gladiator.stamina = stats["stamina"]
+    max_health = 1 + int(math.floor(stats_with_bonus["health"] * 1.5))
+    current_gladiator.max_health = max_health
+    current_gladiator.current_health = max_health
+    current_gladiator.strength = stats_with_bonus["strength"]
+    current_gladiator.agility = stats_with_bonus["agility"]
+    current_gladiator.initiative = stats_with_bonus["initiative"]
+    current_gladiator.weaponskill = stats_with_bonus["weaponskill"]
+    current_gladiator.stamina = stats_with_bonus["stamina"]
     return GladiatorResponse(**current_gladiator.to_dict())
 
 

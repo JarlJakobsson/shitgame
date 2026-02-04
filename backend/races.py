@@ -48,6 +48,14 @@ RACES = {
                 "title": "Berserk",
                 "description": "Orcs have a strong will to survive (and inflict pain). When their HP falls below 90% of max HP, their strength increases by 10%. Damage dealt with the bonus strength cannot exceed the damage cap. Once activated, the effect lasts until the end of the fight."
             }
+        ],
+        "racial_bonus": [
+            { "stat": "Health", "value": "+20%" },
+            { "stat": "Strength", "value": "+30%" },
+            { "stat": "Stamina", "value": "+0%" },
+            { "stat": "Initiative", "value": "+0%" },
+            { "stat": "Agility", "value": "-30%" },
+            { "stat": "Weaponskill", "value": "+10%" }
         ]
     },
     "Goblin": {
@@ -68,6 +76,14 @@ RACES = {
                 "title": "Dirty Fighting Tricks",
                 "description": "Goblins fight dirty and are not ashamed to use underhanded tactics. Each time they are attacked, they have a 20% chance to counter by throwing sand, grit, and dust into the attacker’s eyes, increasing the chance that the attacker misses their next attack by 5%."
             }
+        ],
+        "racial_bonus": [
+            { "stat": "Health", "value": "-15%" },
+            { "stat": "Strength", "value": "+20%" },
+            { "stat": "Stamina", "value": "+0%" },
+            { "stat": "Initiative", "value": "+10%" },
+            { "stat": "Agility", "value": "+30%" },
+            { "stat": "Weaponskill", "value": "+10%" }
         ]
     },
     "Minotaur": {
@@ -88,6 +104,14 @@ RACES = {
                 "title": "Higher Weapon Damage Cap",
                 "description": "A minotaur’s enormous strength lets them hit harder than other races. When using a weapon, their damage potential is 15% higher than others."
             }
+        ],
+        "racial_bonus": [
+            { "stat": "Health", "value": "+50%" },
+            { "stat": "Strength", "value": "+50%" },
+            { "stat": "Stamina", "value": "-20%" },
+            { "stat": "Initiative", "value": "-40%" },
+            { "stat": "Agility", "value": "-60%" },
+            { "stat": "Weaponskill", "value": "-15%" }
         ]
     },
     "Skeleton": {
@@ -104,6 +128,14 @@ RACES = {
                 "title": "Life Drain",
                 "description": "When the undead attack, they have a 10% chance to steal 5% of the opponent’s current HP and transfer it to themselves. Limited to a maximum of two times per round."
             }
+        ],
+        "racial_bonus": [
+            { "stat": "Health", "value": "+10%" },
+            { "stat": "Strength", "value": "+0%" },
+            { "stat": "Stamina", "value": "+100%" },
+            { "stat": "Initiative", "value": "-10%" },
+            { "stat": "Agility", "value": "+5%" },
+            { "stat": "Weaponskill", "value": "+5%" }
         ]
     }
 }

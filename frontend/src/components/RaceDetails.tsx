@@ -50,15 +50,24 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
 
   const statRows = useMemo(
     () => [
-      { key: 'strength', label: 'Strength', bonus: '+10%' },
-      { key: 'health', label: 'Health', bonus: '+10%' },
-      { key: 'stamina', label: 'Stamina', bonus: '+10%' },
-      { key: 'agility', label: 'Agility', bonus: '+10%' },
-      { key: 'initiative', label: 'Initiative', bonus: '+10%' },
-      { key: 'weaponskill', label: 'Weaponskill', bonus: '+10%' },
+      { key: 'strength', label: 'Strength' },
+      { key: 'health', label: 'Health' },
+      { key: 'stamina', label: 'Stamina' },
+      { key: 'agility', label: 'Agility' },
+      { key: 'initiative', label: 'Initiative' },
+      { key: 'weaponskill', label: 'Weaponskill' },
     ] as const,
     []
   );
+
+  const racialBonusMap = useMemo(() => {
+    const entries = race.racial_bonus || [];
+    const mapped: Record<string, string> = {};
+    entries.forEach((entry) => {
+      mapped[entry.stat.toLowerCase()] = entry.value;
+    });
+    return mapped;
+  }, [race.racial_bonus]);
 
   const totalPoints = statRows.reduce((sum, row) => sum + stats[row.key], 0);
   const remainingPoints = maxPoints - totalPoints;
@@ -181,7 +190,9 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
                   <div className={styles.plannerLabel}>
                     <span className={styles.plannerIcon}>{bonusIcons[row.key]}</span>
                     <span>{row.label}</span>
-                    <span className={styles.plannerBonus}>{row.bonus}</span>
+                    <span className={styles.plannerBonus}>
+                      {racialBonusMap[row.key] || '+0%'}
+                    </span>
                   </div>
                   <div className={styles.plannerControls}>
                     <button
