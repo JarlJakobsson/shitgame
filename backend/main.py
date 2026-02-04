@@ -15,6 +15,8 @@ from combat import Combat
 from races import RACES
 from enemies import ENEMIES, get_enemy
 from leveling import apply_experience
+from database import engine, get_db
+from models_db import Base, GladiatorRow
 # ============================================
 # GAME ENDPOINTS
 # ============================================
@@ -42,18 +44,22 @@ class StripApiPrefixMiddleware:
 
 app.add_middleware(StripApiPrefixMiddleware)
 
+Base.metadata.create_all(bind=engine)
+
 # List available enemies
 @app.get("/enemies")
 def get_enemies():
     """Get all available enemies."""
-    if current_gladiator is None:
-        return {}
-    level = current_gladiator.level
-    return {
-        name: data
-        for name, data in ENEMIES.items()
-        if data.get("min_level", 1) <= level
-    }
+    with get_db() as db:
+        gladiator = _load_gladiator(db)
+        if gladiator is None:
+            return {}
+        level = gladiator.level
+        return {
+            name: data
+            for name, data in ENEMIES.items()
+            if data.get("min_level", 1) <= level
+        }
 
 # Enable CORS for frontend access
 app.add_middleware(
@@ -69,9 +75,61 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory storage (in production, use a database)
-current_gladiator: Gladiator = None
+# Combat remains in-memory per instance. Gladiator is persisted.
 current_combat: Combat = None
+
+
+def _load_gladiator(db) -> Gladiator | None:
+    row = db.query(GladiatorRow).first()
+    if not row:
+        return None
+    gladiator = Gladiator(row.name, row.race)
+    gladiator.apply_persisted_stats({
+        "name": row.name,
+        "race": row.race,
+        "level": row.level,
+        "experience": row.experience,
+        "gold": row.gold,
+        "wins": row.wins,
+        "losses": row.losses,
+        "vitality": row.vitality,
+        "max_health": row.max_health,
+        "current_health": row.current_health,
+        "strength": row.strength,
+        "dodge": row.dodge,
+        "initiative": row.initiative,
+        "weaponskill": row.weaponskill,
+        "stamina": row.stamina,
+        "stat_points": row.stat_points,
+    })
+    return gladiator
+
+
+def _save_gladiator(db, gladiator: Gladiator):
+    row = db.query(GladiatorRow).first()
+    if not row:
+        row = GladiatorRow()
+        db.add(row)
+
+    row.name = gladiator.name
+    row.race = gladiator.race
+    row.level = gladiator.level
+    row.experience = gladiator.experience
+    row.gold = gladiator.gold
+    row.wins = gladiator.wins
+    row.losses = gladiator.losses
+    row.vitality = gladiator.vitality
+    row.max_health = gladiator.max_health
+    row.current_health = gladiator.current_health
+    row.strength = gladiator.strength
+    row.dodge = gladiator.dodge
+    row.initiative = gladiator.initiative
+    row.weaponskill = gladiator.weaponskill
+    row.stamina = gladiator.stamina
+    row.stat_points = gladiator.stat_points
+
+    db.commit()
+    db.refresh(row)
 
 
 # ============================================
@@ -93,8 +151,12 @@ def get_races():
 @app.post("/gladiator")
 def create_gladiator(gladiator_data: GladiatorCreate):
     """Create a new gladiator."""
-    global current_gladiator
-    
+    with get_db() as db:
+        existing = db.query(GladiatorRow).first()
+        if existing:
+            db.delete(existing)
+            db.commit()
+
     if gladiator_data.race not in RACES:
         raise HTTPException(status_code=400, detail="Invalid race")
     
@@ -148,14 +210,18 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     current_gladiator.initiative = stats_with_bonus["initiative"]
     current_gladiator.weaponskill = stats_with_bonus["weaponskill"]
     current_gladiator.stamina = stats_with_bonus["stamina"]
+    with get_db() as db:
+        _save_gladiator(db, current_gladiator)
     return GladiatorResponse(**current_gladiator.to_dict())
 
 
 @app.post("/gladiator/allocate")
 def allocate_stat_points(allocation: StatAllocation):
     """Allocate unspent stat points from leveling."""
-    if current_gladiator is None:
-        raise HTTPException(status_code=404, detail="No gladiator created")
+    with get_db() as db:
+        current_gladiator = _load_gladiator(db)
+        if current_gladiator is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
 
     points = {
         "health": allocation.health,
@@ -191,34 +257,42 @@ def allocate_stat_points(allocation: StatAllocation):
 
     current_gladiator.stat_points -= total_points
 
+    with get_db() as db:
+        _save_gladiator(db, current_gladiator)
     return GladiatorResponse(**current_gladiator.to_dict())
 
 
 @app.get("/gladiator")
 def get_gladiator():
     """Get current gladiator stats."""
-    if current_gladiator is None:
-        raise HTTPException(status_code=404, detail="No gladiator created")
-    
-    return GladiatorResponse(**current_gladiator.to_dict())
+    with get_db() as db:
+        current_gladiator = _load_gladiator(db)
+        if current_gladiator is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        return GladiatorResponse(**current_gladiator.to_dict())
 
 
 @app.post("/gladiator/train")
 def train_gladiator():
     """Train the gladiator."""
-    if current_gladiator.gold < 10:
-        raise HTTPException(status_code=400, detail="Not enough gold to train")
-    
-    current_gladiator.gold -= 10
-    current_gladiator.strength += 1
-    current_gladiator.dodge += 1
-    current_gladiator.weaponskill += 1
-    current_gladiator.vitality += 3
-    current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
-    current_gladiator.current_health = current_gladiator.max_health
-    apply_experience(current_gladiator, 10)
-    
-    return GladiatorResponse(**current_gladiator.to_dict())
+    with get_db() as db:
+        current_gladiator = _load_gladiator(db)
+        if current_gladiator is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        if current_gladiator.gold < 10:
+            raise HTTPException(status_code=400, detail="Not enough gold to train")
+
+        current_gladiator.gold -= 10
+        current_gladiator.strength += 1
+        current_gladiator.dodge += 1
+        current_gladiator.weaponskill += 1
+        current_gladiator.vitality += 3
+        current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
+        current_gladiator.current_health = current_gladiator.max_health
+        apply_experience(current_gladiator, 10)
+
+        _save_gladiator(db, current_gladiator)
+        return GladiatorResponse(**current_gladiator.to_dict())
 
 
 from fastapi import Query, Request
@@ -248,10 +322,11 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
     global current_combat
 
     print("POST /combat/start called")
-
-    if current_gladiator is None:
-        print("No gladiator created")
-        raise HTTPException(status_code=404, detail="No gladiator created")
+    with get_db() as db:
+        current_gladiator = _load_gladiator(db)
+        if current_gladiator is None:
+            print("No gladiator created")
+            raise HTTPException(status_code=404, detail="No gladiator created")
 
     # Try to get enemy_name from JSON body if not provided as query
     if enemy_name is None:
@@ -265,6 +340,8 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
 
     # Reset player health
     current_gladiator.current_health = current_gladiator.max_health
+    with get_db() as db:
+        _save_gladiator(db, current_gladiator)
 
     # If enemy_name is provided and valid, use it
     opponent = None
@@ -362,6 +439,9 @@ def finish_combat():
     battle_log = []
     if hasattr(current_combat, "battle_log"):
         battle_log = current_combat.battle_log
+
+    with get_db() as db:
+        _save_gladiator(db, player)
 
     current_combat = None
 

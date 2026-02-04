@@ -111,6 +111,24 @@ class Gladiator(Character):
     def add_experience(self, amount: int) -> dict:
         return apply_experience(self, amount)
 
+    def apply_persisted_stats(self, data: dict):
+        self.name = data.get("name", self.name)
+        self.race = data.get("race", self.race)
+        self.level = data.get("level", self.level)
+        self.experience = data.get("experience", self.experience)
+        self.gold = data.get("gold", self.gold)
+        self.wins = data.get("wins", self.wins)
+        self.losses = data.get("losses", self.losses)
+        self.vitality = data.get("vitality", self.vitality)
+        self.max_health = data.get("max_health", self.max_health)
+        self.current_health = data.get("current_health", self.current_health)
+        self.strength = data.get("strength", self.strength)
+        self.dodge = data.get("dodge", self.dodge)
+        self.initiative = data.get("initiative", self.initiative)
+        self.weaponskill = data.get("weaponskill", self.weaponskill)
+        self.stamina = data.get("stamina", self.stamina)
+        self.stat_points = data.get("stat_points", self.stat_points)
+
 # Enemy subclass
 class Enemy(Character):
     def __init__(self, name: str, stats: dict):
