@@ -56,6 +56,20 @@ class Gladiator(Character):
         self.gold: int = STARTING_GOLD
         self.wins: int = 0
         self.losses: int = 0
+        self.apply_race_stats()
+
+    def apply_race_stats(self):
+        if not self.race or self.race not in RACES:
+            return
+
+        race_data = RACES[self.race]
+        self.max_health = race_data["health"]
+        self.current_health = race_data["health"]
+        self.strength = race_data["strength"]
+        self.agility = race_data["agility"]
+        self.initiative = race_data["initiative"]
+        self.weaponskill = race_data["weaponskill"]
+        self.stamina = race_data.get("stamina", max(1, race_data["health"] // 10))
 
     def to_dict(self):
         data = super().to_dict()
