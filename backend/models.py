@@ -25,6 +25,7 @@ class GladiatorResponse(BaseModel):
     gold: int
     wins: int
     losses: int
+    stamina: int
 
 
 class CombatRound(BaseModel):

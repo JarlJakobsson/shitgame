@@ -21,6 +21,7 @@ export interface Gladiator {
   gold: number;
   wins: number;
   losses: number;
+  stamina: number;
 }
 
 export interface Race {
@@ -33,8 +34,10 @@ export interface Race {
 }
 
 export const gameAPI = {
-  // getEnemies removed; backend no longer supports /enemies
-  // startCombatWithEnemy removed; use startCombat instead
+  getEnemies: async (): Promise<Record<string, any>> => {
+    const response = await api.get('/enemies');
+    return response.data;
+  },
   getRaces: async (): Promise<Record<string, Race>> => {
     const response = await api.get('/races');
     return response.data;
@@ -57,6 +60,11 @@ export const gameAPI = {
 
   startCombat: async () => {
     const response = await api.post('/combat/start');
+    return response.data;
+  },
+
+  startCombatWithEnemy: async (enemyName: string) => {
+    const response = await api.post('/combat/start', { enemy_name: enemyName });
     return response.data;
   },
 

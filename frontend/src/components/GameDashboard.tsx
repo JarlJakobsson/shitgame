@@ -61,14 +61,14 @@ export function GameDashboard({
         </div>
 
         <div className={styles.attributes}>
-                              <div className={styles.attribute}>
-                                <span>🗡️</span>
-                                <span>Weaponskill: {gladiator.weaponskill}</span>
-                              </div>
-                    <div className={styles.attribute}>
-                      <span>🚦</span>
-                      <span>Initiative: {gladiator.initiative}</span>
-                    </div>
+          <div className={styles.attribute}>
+            <span>🗡️</span>
+            <span>Weaponskill: {gladiator.weaponskill}</span>
+          </div>
+          <div className={styles.attribute}>
+            <span>🚦</span>
+            <span>Initiative: {gladiator.initiative}</span>
+          </div>
           <div className={styles.attribute}>
             <span>💪</span>
             <span>Strength: {gladiator.strength}</span>
@@ -80,6 +80,10 @@ export function GameDashboard({
           <div className={styles.attribute}>
             <span>🌀</span>
             <span>Dodge: {gladiator.agility * 2}%</span>
+          </div>
+          <div className={styles.attribute}>
+            <span>💨</span>
+            <span>Stamina: {gladiator.stamina}</span>
           </div>
         </div>
 
