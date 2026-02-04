@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import gameAPI, { Gladiator, Race } from './services/gameAPI';
 import { MainMenu } from './components/MainMenu';
 import { RaceSelection } from './components/RaceSelection';
+import { RaceDetails } from './components/RaceDetails';
 import { GladiatorCreation } from './components/GladiatorCreation';
 import { GameDashboard } from './components/GameDashboard';
 import { Arena } from './components/Arena';
 import './App.css';
 
-type GameState = 'menu' | 'race-selection' | 'gladiator-creation' | 'dashboard' | 'arena';
+type GameState = 'menu' | 'race-selection' | 'race-details' | 'gladiator-creation' | 'dashboard' | 'arena';
 
 function App() {
   const [gameState, setGameState] = useState<GameState>('menu');
@@ -35,7 +36,17 @@ function App() {
 
   const handleRaceSelected = (race: string) => {
     setSelectedRace(race);
-    setGameState('gladiator-creation');
+    setGameState('race-details');
+  };
+
+  const handleRaceBack = () => {
+    setGameState('race-selection');
+  };
+
+  const handleRaceConfirm = () => {
+    if (selectedRace) {
+      setGameState('gladiator-creation');
+    }
   };
 
   const handleGladiatorCreated = async () => {
@@ -85,6 +96,15 @@ function App() {
         <RaceSelection races={races} onSelectRace={handleRaceSelected} />
       )}
 
+      {gameState === 'race-details' && selectedRace && races[selectedRace] && (
+        <RaceDetails
+          raceName={selectedRace}
+          race={races[selectedRace]}
+          onBack={handleRaceBack}
+          onConfirm={handleRaceConfirm}
+        />
+      )}
+
       {gameState === 'gladiator-creation' && selectedRace && (
         <GladiatorCreation
           raceName={selectedRace}
@@ -107,9 +127,7 @@ function App() {
           onBattleEnd={handleBattleEnd}
           playerRace={
             gladiator.race && typeof gladiator.race === 'string'
-              ? gladiator.race.toLowerCase() === 'orc'
-                ? 'orc'
-                : 'human'
+              ? gladiator.race.toLowerCase()
               : 'human'
           }
         />
