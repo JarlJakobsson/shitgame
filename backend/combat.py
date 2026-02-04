@@ -32,21 +32,20 @@ class Combat:
         Returns:
             tuple: (damage, is_critical_hit)
         """
-        # Base damage from strength
-        base_damage = attacker.strength + random.randint(1, 10)
+        # Base damage from strength with a small multiplier-based randomizer
+        base_damage = attacker.strength * 0.088
+        damage_multiplier = random.uniform(0.85, 1.15)
+        base_damage = int(round(base_damage * damage_multiplier))
+        if base_damage == 0 and attacker.strength > 0:
+            base_damage = 1
 
-        # Miss chance based on weaponskill
-        base_miss_chance = 10  # percent
-        miss_chance = max(0, base_miss_chance - attacker.weaponskill)
-        miss_roll = random.randint(1, 100)
-        if miss_roll <= miss_chance:
+        # Hit chance based on a weaponskill vs agility contest
+        hit_rating = max(1.0, attacker.weaponskill)
+        dodge_rating = max(1.0, defender.agility * 0.25)
+        hit_chance = hit_rating / (hit_rating + dodge_rating)
+        hit_chance = max(0.05, min(0.95, hit_chance))
+        if random.random() > hit_chance:
             return 0, False  # Miss
-
-        # Dodge chance based on defender's agility (0-100)
-        dodge_roll = random.randint(1, 100)
-        dodge_chance = defender.agility * 2  # 2% per agility point
-        if dodge_roll <= dodge_chance:
-            return 0, False  # Dodge
 
         # Critical hit chance (static 5%)
         crit_roll = random.randint(1, 100)
@@ -64,37 +63,45 @@ class Combat:
         """
         self.round += 1
         round_info = {"round": self.round, "actions": []}
+        # Determine who goes first each round based on initiative difference
+        init_diff = self.player.initiative - self.opponent.initiative
+        first_chance = 0.5 + (init_diff * 0.045)
+        first_chance = max(0.05, min(0.95, first_chance))
+        player_first = random.random() < first_chance
 
+        first_attacker = self.player if player_first else self.opponent
+        first_defender = self.opponent if player_first else self.player
 
-
-        # Player attacks first
-        damage, critical = self.calculate_attack_damage(self.player, self.opponent)
+        # First attacker
+        damage, critical = self.calculate_attack_damage(first_attacker, first_defender)
         if damage == 0:
-            action = f"{self.player.name} MISSES!"
+            action = f"{first_attacker.name} MISSES!"
         else:
-            actual_damage = self.opponent.take_damage(damage)
+            actual_damage = first_defender.take_damage(damage)
             hit_type = " (CRITICAL!)" if critical else ""
-            action = f"{self.player.name} hits {self.opponent.name} for {actual_damage} damage{hit_type}"
+            action = f"{first_attacker.name} hits {first_defender.name} for {actual_damage} damage{hit_type}"
         round_info["actions"].append(action)
 
-        # Check if opponent is defeated
-        if not self.opponent.is_alive():
-            round_info["winner"] = "player"
+        # Check if defender is defeated
+        if not first_defender.is_alive():
+            round_info["winner"] = "player" if first_attacker == self.player else "opponent"
             return round_info
 
-        # Opponent attacks
-        damage, critical = self.calculate_attack_damage(self.opponent, self.player)
+        # Second attacker
+        second_attacker = first_defender
+        second_defender = first_attacker
+        damage, critical = self.calculate_attack_damage(second_attacker, second_defender)
         if damage == 0:
-            action = f"{self.opponent.name} MISSES!"
+            action = f"{second_attacker.name} MISSES!"
         else:
-            actual_damage = self.player.take_damage(damage)
+            actual_damage = second_defender.take_damage(damage)
             hit_type = " (CRITICAL!)" if critical else ""
-            action = f"{self.opponent.name} hits {self.player.name} for {actual_damage} damage{hit_type}"
+            action = f"{second_attacker.name} hits {second_defender.name} for {actual_damage} damage{hit_type}"
         round_info["actions"].append(action)
 
-        # Check if player is defeated
-        if not self.player.is_alive():
-            round_info["winner"] = "opponent"
+        # Check if defender is defeated
+        if not second_defender.is_alive():
+            round_info["winner"] = "player" if second_attacker == self.player else "opponent"
             return round_info
 
         round_info["winner"] = None
