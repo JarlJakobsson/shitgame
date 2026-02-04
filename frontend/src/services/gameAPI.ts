@@ -35,6 +35,15 @@ export interface Race {
   specialty?: string;
 }
 
+export interface StatPlan {
+  strength: number;
+  health: number;
+  stamina: number;
+  agility: number;
+  initiative: number;
+  weaponskill: number;
+}
+
 export const gameAPI = {
   getEnemies: async (): Promise<Record<string, any>> => {
     const response = await api.get('/enemies');
@@ -45,8 +54,8 @@ export const gameAPI = {
     return response.data;
   },
 
-  createGladiator: async (name: string, race: string): Promise<Gladiator> => {
-    const response = await api.post('/gladiator', { name, race });
+  createGladiator: async (name: string, race: string, stats: StatPlan): Promise<Gladiator> => {
+    const response = await api.post('/gladiator', { name, race, ...stats });
     return response.data;
   },
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import gameAPI, { Gladiator, Race } from './services/gameAPI';
+import gameAPI, { Gladiator, Race, StatPlan } from './services/gameAPI';
 import { MainMenu } from './components/MainMenu';
 import { RaceSelection } from './components/RaceSelection';
 import { RaceDetails } from './components/RaceDetails';
@@ -13,6 +13,14 @@ type GameState = 'menu' | 'race-selection' | 'race-details' | 'gladiator-creatio
 function App() {
   const [gameState, setGameState] = useState<GameState>('menu');
   const [selectedRace, setSelectedRace] = useState<string | null>(null);
+  const [plannedStats, setPlannedStats] = useState<StatPlan>({
+    strength: 0,
+    health: 0,
+    stamina: 0,
+    agility: 0,
+    initiative: 0,
+    weaponskill: 0,
+  });
   const [gladiator, setGladiator] = useState<Gladiator | null>(null);
   const [races, setRaces] = useState<Record<string, Race>>({});
   const [loading, setLoading] = useState(false);
@@ -36,6 +44,14 @@ function App() {
 
   const handleRaceSelected = (race: string) => {
     setSelectedRace(race);
+    setPlannedStats({
+      strength: 0,
+      health: 0,
+      stamina: 0,
+      agility: 0,
+      initiative: 0,
+      weaponskill: 0,
+    });
     setGameState('race-details');
   };
 
@@ -43,8 +59,9 @@ function App() {
     setGameState('race-selection');
   };
 
-  const handleRaceConfirm = () => {
+  const handleRaceConfirm = (stats: StatPlan) => {
     if (selectedRace) {
+      setPlannedStats(stats);
       setGameState('gladiator-creation');
     }
   };
@@ -102,12 +119,14 @@ function App() {
           race={races[selectedRace]}
           onBack={handleRaceBack}
           onConfirm={handleRaceConfirm}
+          initialStats={plannedStats}
         />
       )}
 
       {gameState === 'gladiator-creation' && selectedRace && (
         <GladiatorCreation
           raceName={selectedRace}
+          stats={plannedStats}
           onGladiatorCreated={handleGladiatorCreated}
         />
       )}

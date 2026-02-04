@@ -9,6 +9,12 @@ from typing import Optional, List
 class GladiatorCreate(BaseModel):
     name: str
     race: str
+    health: int = 0
+    strength: int = 0
+    agility: int = 0
+    initiative: int = 0
+    weaponskill: int = 0
+    stamina: int = 0
 
 
 class GladiatorResponse(BaseModel):

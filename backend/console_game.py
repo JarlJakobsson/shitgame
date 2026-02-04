@@ -40,7 +40,7 @@ class Game:
                 print("\nInvalid choice. Please try again.")
         
         # Create gladiator
-        self.player_gladiator = Gladiator(name, race)
+        self.player_gladiator = Gladiator(name, race, use_race_stats=True)
         print(f"\n✓ {self.player_gladiator.name} the {self.player_gladiator.race} has entered the arena!")
         self.player_gladiator.display_stats()
     
@@ -81,7 +81,7 @@ class Game:
         opponent_races = ["Human", "Orc"]
         opponent_race = random.choice(opponent_races)
         difficulty = random.choice(["Weak", "Normal", "Strong"])
-        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race)
+        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race, use_race_stats=True)
         
         # Adjust opponent stats based on difficulty
         if difficulty == "Weak":

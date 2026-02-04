@@ -47,13 +47,6 @@ export function RaceSelection({ races, onSelectRace }: RaceSelectionProps) {
               />
               <div className={styles.raceDetails}>
                 <h3>{raceKey}</h3>
-                {races[raceKey] && (
-                  <div className={styles.stats}>
-                    <span>{'\u2764\uFE0F'} {races[raceKey].health}</span>
-                    <span>{'\uD83D\uDCAA'} {races[raceKey].strength}</span>
-                    <span>{'\u26A1'} {races[raceKey].agility}</span>
-                  </div>
-                )}
               </div>
             </div>
           )})}
