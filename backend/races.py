@@ -12,6 +12,12 @@ RACES = {
         "description": "Balanced warriors with versatile combat skills",
         "origin": "City-states of the inner realm",
         "specialty": "Adaptability and disciplined combat",
+        "pros": [
+            "Jack of all traits"
+        ],
+        "cons": [
+            "Jack of all traits"
+        ],
         "racials": [
             {
                 "title": "Increased Critical Hit Chance",
@@ -40,6 +46,12 @@ RACES = {
         "description": "Powerful and hardy, with high health and strength",
         "origin": "Volcanic badlands and war camps",
         "specialty": "Brute force and endurance",
+        "pros": [
+            "Strong honorable warriors"
+        ],
+        "cons": [
+            "Dodging is not honorable"
+        ],
         "racials": [
             {
                 "title": "Increased Critical Damage",
@@ -68,6 +80,12 @@ RACES = {
         "description": "Super fast but fragile, relying on speed over power",
         "origin": "Cave warrens and overgrown ruins",
         "specialty": "Speed, trickery, and ambushes",
+        "pros": [
+            "Sneaky hard hitters"
+        ],
+        "cons": [
+            "Too small to withstand punishment"
+        ],
         "racials": [
             {
                 "title": "Increased Bonus from Total Physique",
@@ -96,6 +114,12 @@ RACES = {
         "description": "Slow and crushingly strong, built to overpower enemies",
         "origin": "Ancient labyrinths of the south",
         "specialty": "Raw power and unstoppable charges",
+        "pros": [
+            "Built for POWER."
+        ],
+        "cons": [
+            "Not built for much else"
+        ],
         "racials": [
             {
                 "title": "Enthralling Terror",
@@ -124,6 +148,12 @@ RACES = {
         "description": "Steady and resilient, harder to put down than it looks",
         "origin": "Forgotten crypts and ruined battlefields",
         "specialty": "Relentless endurance and fearlessness",
+        "pros": [
+            "Never stops"
+        ],
+        "cons": [
+            "Can't build muscle without muscle"
+        ],
         "racials": [
             {
                 "title": "Life Drain",

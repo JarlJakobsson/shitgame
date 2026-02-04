@@ -28,13 +28,9 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
   const [stats, setStats] = useState<StatPlan>(initialStats);
   const raceKey = raceName.toLowerCase();
   const raceImage = raceImages[raceKey];
-  const prosConsByRace: Record<string, { pros: string[]; cons: string[] }> = {
-    human: {
-      pros: ['Jack of all traits'],
-      cons: ['Jack of all traits'],
-    },
-  };
-  const raceProsCons = prosConsByRace[raceKey];
+  const racePros = race.pros || [];
+  const raceCons = race.cons || [];
+  const showProsCons = racePros.length > 0 || raceCons.length > 0;
   const bonusIcons: Record<string, string> = {
     strength: '\uD83D\uDCAA',
     health: '\u2764\uFE0F',
@@ -118,11 +114,11 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
                 </div>
               </div>
 
-              {raceProsCons && (
+              {showProsCons && (
                 <div className={styles.prosCons}>
                   <div className={styles.prosColumn}>
                     <h3>Pros</h3>
-                    {raceProsCons.pros.map((item) => (
+                    {racePros.map((item) => (
                       <div key={`pros-${item}`} className={styles.tag}>
                         <span className={styles.proTag}>+</span>
                         {item}
@@ -131,7 +127,7 @@ export function RaceDetails({ raceName, race, initialStats, onConfirm, onBack }:
                   </div>
                   <div className={styles.consColumn}>
                     <h3>Cons</h3>
-                    {raceProsCons.cons.map((item) => (
+                    {raceCons.map((item) => (
                       <div key={`cons-${item}`} className={styles.tag}>
                         <span className={styles.conTag}>-</span>
                         {item}
