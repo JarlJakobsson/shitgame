@@ -9,7 +9,7 @@ ENEMIES = {
         "dodge": 10,
         "initiative": 12,
         "weaponskill": 3,
-        "stamina": 6,
+        "stamina": 27,
         "min_level": 3,
         "description": "A sneaky goblin, quick but fragile."
     },
@@ -19,7 +19,7 @@ ENEMIES = {
         "dodge": 7,
         "initiative": 8,
         "weaponskill": 4,
-        "stamina": 5,
+        "stamina": 41,
         "min_level": 4,
         "description": "A reanimated skeleton, hard to kill."
     },
@@ -29,7 +29,7 @@ ENEMIES = {
         "dodge": 4,
         "initiative": 6,
         "weaponskill": 6,
-        "stamina": 5,
+        "stamina": 58,
         "min_level": 8,
         "description": "A massive beast with brutal power."
     },
@@ -39,7 +39,7 @@ ENEMIES = {
         "dodge": 8,
         "initiative": 9,
         "weaponskill": 8,
-        "stamina": 10,
+        "stamina": 47,
         "min_level": 6,
         "description": "A fallen knight, skilled and dangerous."
     },
@@ -49,7 +49,7 @@ ENEMIES = {
         "dodge": 5,
         "initiative": 5,
         "weaponskill": 1,
-        "stamina": 8,
+        "stamina": 24,
         "min_level": 1,
         "description": "A weak but persistent blob of goo."
     },
@@ -59,7 +59,7 @@ ENEMIES = {
         "dodge": 11,
         "initiative": 11,
         "weaponskill": 5,
-        "stamina": 7,
+        "stamina": 34,
         "min_level": 2,
         "description": "A quick and greedy human outlaw."
     }

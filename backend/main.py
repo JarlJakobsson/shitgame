@@ -2,13 +2,15 @@
 # FASTAPI APPLICATION
 # ============================================
 
-from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError as FastAPIRequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
 from math import floor
 import time
 import random
-import math
 
 from sqlalchemy import inspect, text
 
@@ -28,11 +30,18 @@ from equipment import (
     get_gladiator_equipment, get_equipped_items, equip_item, unequip_item,
     purchase_equipment, calculate_equipment_bonuses
 )
+
 # ============================================
-# GAME ENDPOINTS
+# APP SETUP
 # ============================================
 
-app = FastAPI(title="Gladiator Arena API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _init_db()
+    yield
+
+
+app = FastAPI(title="Gladiator Arena API", version="1.0.0", lifespan=lifespan)
 
 
 class StripApiPrefixMiddleware:
@@ -81,10 +90,6 @@ def _ensure_equipped_items_column():
         conn.execute(text("ALTER TABLE gladiators ADD COLUMN equipped_items JSON"))
 
 
-@app.on_event("startup")
-def on_startup():
-    _init_db()
-
 # List available enemies
 @app.get("/enemies")
 def get_enemies():
@@ -115,7 +120,7 @@ app.add_middleware(
 )
 
 # Combat remains in-memory per instance. Gladiator is persisted.
-current_combat: Combat = None
+current_combat: Combat | None = None
 
 
 def _load_gladiator(db, apply_equipment_bonuses: bool = False) -> Gladiator | None:
@@ -245,7 +250,7 @@ def create_gladiator(gladiator_data: GladiatorCreate):
         percent = racial_bonus_map.get(stat_key, 0.0)
         adjusted = base_value + (base_value * percent)
         # Round down so partial points don't count
-        return max(0, int(math.floor(adjusted)))
+        return max(0, int(floor(adjusted)))
 
     stats_with_bonus = {key: apply_bonus(value, key) for key, value in stats.items()}
 
@@ -350,14 +355,9 @@ def train_gladiator():
         _save_gladiator(db, current_gladiator)
         return GladiatorResponse(**current_gladiator.to_dict())
 
-
-from fastapi import Query, Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError as FastAPIRequestValidationError
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    print(f"Unhandled exception: {exc}")
+    print(f"Unhandled exception on {request.url.path}: {exc}")
     return JSONResponse(
         status_code=500,
         content={"detail": f"Internal server error: {exc}"}
@@ -365,7 +365,7 @@ async def global_exception_handler(request, exc):
 
 @app.exception_handler(FastAPIRequestValidationError)
 async def validation_exception_handler(request, exc):
-    print(f"Validation error: {exc}")
+    print(f"Validation error on {request.url.path}: {exc}")
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors()}
