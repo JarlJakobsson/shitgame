@@ -3,7 +3,30 @@
 # ============================================
 
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+
+
+class Equipment(BaseModel):
+    id: int
+    name: str
+    slot: str
+    item_type: str
+    rarity: str
+    level_requirement: int
+    strength_bonus: int = 0
+    vitality_bonus: int = 0
+    stamina_bonus: int = 0
+    dodge_bonus: int = 0
+    initiative_bonus: int = 0
+    weaponskill_bonus: int = 0
+    value: int = 10
+    description: Optional[str] = None
+
+
+class GladiatorEquipment(BaseModel):
+    id: int
+    equipment: Equipment
+    is_equipped: bool
 
 
 class GladiatorCreate(BaseModel):
@@ -43,6 +66,13 @@ class GladiatorResponse(BaseModel):
     stamina: int
     stat_points: int
     vitality: int
+    equipped_items: Optional[Dict[str, Any]] = None
+    inventory: Optional[List[GladiatorEquipment]] = None
+
+
+class EquipmentSlotRequest(BaseModel):
+    equipment_id: int
+    slot: str
 
 
 class CombatRound(BaseModel):
@@ -57,3 +87,7 @@ class BattleResult(BaseModel):
     result: str
     experience_gained: Optional[int] = None
     gold_gained: Optional[int] = None
+
+
+class ShopInventory(BaseModel):
+    available_items: List[Equipment]

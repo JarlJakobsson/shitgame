@@ -14,6 +14,10 @@
   color: #e7e7e7;
 }
 
+.dashboardLoading {
+  opacity: 0.85;
+}
+
 .header {
   display: flex;
   justify-content: space-between;

@@ -3,7 +3,6 @@
 # ============================================
 
 import random
-import math
 
 
 class Combat:

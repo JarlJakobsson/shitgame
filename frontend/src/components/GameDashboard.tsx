@@ -1,21 +1,24 @@
-import { Gladiator } from '../services/gameAPI';
-import styles from './GameDashboard.module.css';
-import humanImg from '../assets/human.png';
-import orcImg from '../assets/orc.png';
-import goblinImg from '../assets/goblin.png';
-import minotaurImg from '../assets/minotaur.png';
-import skeletonImg from '../assets/skeleton.png';
-import banditImg from '../assets/bandit.png';
-import darkKnightImg from '../assets/darkknight.png';
-import slimeImg from '../assets/slime.png';
+import { useState } from 'react'
+import { GladiatorWithEquipment } from '../services/gameAPI'
+import { EquipmentManager } from './EquipmentManager'
+import styles from './GameDashboard.module.css'
+import humanImg from '../assets/human.png'
+import orcImg from '../assets/orc.png'
+import goblinImg from '../assets/goblin.png'
+import minotaurImg from '../assets/minotaur.png'
+import skeletonImg from '../assets/skeleton.png'
+import banditImg from '../assets/bandit.png'
+import darkKnightImg from '../assets/darkknight.png'
+import slimeImg from '../assets/slime.png'
 
 interface GameDashboardProps {
-  gladiator: Gladiator;
-  onTrain: () => void;
-  onFight: () => void;
-  onAllocateStats: () => void;
-  onLogout: () => void;
-  loading: boolean;
+  gladiator: GladiatorWithEquipment
+  onTrain: () => void
+  onFight: () => void
+  onAllocateStats: () => void
+  onLogout: () => void
+  loading: boolean
+  onGladiatorUpdate: (gladiator: GladiatorWithEquipment) => void
 }
 
 export function GameDashboard({
@@ -25,9 +28,10 @@ export function GameDashboard({
   onAllocateStats,
   onLogout,
   loading,
+  onGladiatorUpdate,
 }: GameDashboardProps) {
-  const healthPercentage = (gladiator.current_health / gladiator.max_health) * 100;
-  const raceKey = gladiator.race.toLowerCase();
+  const healthPercentage = (gladiator.current_health / gladiator.max_health) * 100
+  const raceKey = gladiator.race.toLowerCase()
   const portraitMap: Record<string, string> = {
     human: humanImg,
     orc: orcImg,
@@ -37,12 +41,13 @@ export function GameDashboard({
     bandit: banditImg,
     'dark knight': darkKnightImg,
     slime: slimeImg,
-  };
-  const portrait = portraitMap[raceKey];
+  }
+  const portrait = portraitMap[raceKey]
+  const [showEquipment, setShowEquipment] = useState(false)
 
   return (
     <div className={styles.container}>
-      <div className={styles.dashboard}>
+      <div className={`${styles.dashboard} ${loading ? styles.dashboardLoading : ''}`}>
         <div className={styles.header}>
           <div>
             <div className={styles.name}>{gladiator.name}</div>
@@ -162,8 +167,23 @@ export function GameDashboard({
           >
             Fight in Arena
           </button>
+          <button
+            className={styles.button}
+            onClick={() => setShowEquipment(true)}
+            disabled={loading}
+          >
+            Equipment
+          </button>
         </div>
       </div>
+
+      {showEquipment && (
+        <EquipmentManager
+          gladiator={gladiator}
+          onGladiatorUpdate={onGladiatorUpdate}
+          onClose={() => setShowEquipment(false)}
+        />
+      )}
     </div>
-  );
+  )
 }

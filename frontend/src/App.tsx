@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import axios from 'axios'
 import './App.css'
-import gameAPI, { Gladiator, Race, StatPlan } from './services/gameAPI'
+import gameAPI, { GladiatorWithEquipment, Race, StatPlan } from './services/gameAPI'
 import { MainMenu } from './components/MainMenu'
 import { RaceSelection } from './components/RaceSelection'
 import { RaceDetails } from './components/RaceDetails'
@@ -33,15 +32,12 @@ export default function App() {
   const [races, setRaces] = useState<Record<string, Race>>({})
   const [selectedRaceName, setSelectedRaceName] = useState<string | null>(null)
   const [selectedStats, setSelectedStats] = useState<StatPlan>(DEFAULT_STATS)
-  const [gladiator, setGladiator] = useState<Gladiator | null>(null)
+  const [gladiator, setGladiator] = useState<GladiatorWithEquipment | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const bootstrap = async () => {
-      await Promise.all([loadRaces(), loadGladiator()])
-    }
-    void bootstrap()
+    void loadRaces()
   }, [])
 
   const loadRaces = async () => {
@@ -50,20 +46,6 @@ export default function App() {
       setRaces(data)
     } catch (err) {
       setError('Failed to load races.')
-    }
-  }
-
-  const loadGladiator = async () => {
-    try {
-      const data = await gameAPI.getGladiator()
-      setGladiator(data)
-      setView('dashboard')
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 404) {
-        setView('menu')
-        return
-      }
-      setError('Failed to load gladiator.')
     }
   }
 
@@ -96,7 +78,7 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const data = await gameAPI.getGladiator()
+      const data = await gameAPI.getGladiatorWithEquipment()
       setGladiator(data)
       setView('dashboard')
     } catch (err) {
@@ -110,7 +92,8 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const data = await gameAPI.trainGladiator()
+      await gameAPI.trainGladiator()
+      const data = await gameAPI.getGladiatorWithEquipment()
       setGladiator(data)
     } catch (err) {
       setError('Failed to train gladiator.')
@@ -128,7 +111,7 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const data = await gameAPI.getGladiator()
+      const data = await gameAPI.getGladiatorWithEquipment()
       setGladiator(data)
     } catch (err) {
       setError('Failed to refresh gladiator after battle.')
@@ -161,7 +144,8 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const data = await gameAPI.allocateStats(stats)
+      await gameAPI.allocateStats(stats)
+      const data = await gameAPI.getGladiatorWithEquipment()
       setGladiator(data)
       setView('dashboard')
     } catch (err) {
@@ -213,6 +197,7 @@ export default function App() {
           onAllocateStats={handleAllocateStats}
           onLogout={handleLogout}
           loading={loading}
+          onGladiatorUpdate={setGladiator}
         />
       )
     } else {

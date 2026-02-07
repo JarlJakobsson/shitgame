@@ -10,14 +10,24 @@ import time
 import random
 import math
 
-from models import GladiatorCreate, GladiatorResponse, CombatRound, BattleResult, StatAllocation
+from sqlalchemy import inspect, text
+
+from models import (
+    GladiatorCreate, GladiatorResponse, StatAllocation,
+    EquipmentSlotRequest, ShopInventory
+)
 from gladiator import Gladiator
 from combat import Combat
 from races import RACES
-from enemies import ENEMIES, get_enemy
+from enemies import ENEMIES
 from leveling import apply_experience
 from database import engine, get_db
-from models_db import Base, GladiatorRow
+from models_db import Base, GladiatorRow, EquipmentRow, GladiatorEquipmentRow
+from equipment import (
+    initialize_equipment, get_all_equipment, get_shop_inventory,
+    get_gladiator_equipment, get_equipped_items, equip_item, unequip_item,
+    purchase_equipment, calculate_equipment_bonuses
+)
 # ============================================
 # GAME ENDPOINTS
 # ============================================
@@ -50,12 +60,25 @@ def _init_db():
     while True:
         try:
             Base.metadata.create_all(bind=engine)
+            _ensure_equipped_items_column()
+            with get_db() as db:
+                initialize_equipment(db)
             return
         except Exception:
             attempts += 1
             if attempts >= 10:
                 raise
             time.sleep(1)
+
+def _ensure_equipped_items_column():
+    inspector = inspect(engine)
+    if "gladiators" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("gladiators")}
+    if "equipped_items" in columns:
+        return
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE gladiators ADD COLUMN equipped_items JSON"))
 
 
 @app.on_event("startup")
@@ -95,11 +118,11 @@ app.add_middleware(
 current_combat: Combat = None
 
 
-def _load_gladiator(db) -> Gladiator | None:
+def _load_gladiator(db, apply_equipment_bonuses: bool = False) -> Gladiator | None:
     row = db.query(GladiatorRow).first()
     if not row:
         return None
-    gladiator = Gladiator(row.name, row.race)
+    gladiator = Gladiator(row.name, row.race, use_race_stats=True)
     gladiator.apply_persisted_stats({
         "name": row.name,
         "race": row.race,
@@ -118,6 +141,16 @@ def _load_gladiator(db) -> Gladiator | None:
         "stamina": row.stamina,
         "stat_points": row.stat_points,
     })
+    if apply_equipment_bonuses:
+        bonuses = calculate_equipment_bonuses(db, row.id)
+        gladiator.strength += bonuses["strength_bonus"]
+        gladiator.vitality += bonuses["vitality_bonus"]
+        gladiator.stamina += bonuses["stamina_bonus"]
+        gladiator.dodge += bonuses["dodge_bonus"]
+        gladiator.initiative += bonuses["initiative_bonus"]
+        gladiator.weaponskill += bonuses["weaponskill_bonus"]
+        if bonuses["vitality_bonus"] > 0:
+            gladiator.max_health = 1 + int(floor(gladiator.vitality * 1.5))
     return gladiator
 
 
@@ -168,10 +201,11 @@ def get_races():
 def create_gladiator(gladiator_data: GladiatorCreate):
     """Create a new gladiator."""
     with get_db() as db:
+        db.query(GladiatorEquipmentRow).delete()
         existing = db.query(GladiatorRow).first()
         if existing:
             db.delete(existing)
-            db.commit()
+        db.commit()
 
     if gladiator_data.race not in RACES:
         raise HTTPException(status_code=400, detail="Invalid race")
@@ -215,7 +249,7 @@ def create_gladiator(gladiator_data: GladiatorCreate):
 
     stats_with_bonus = {key: apply_bonus(value, key) for key, value in stats.items()}
 
-    current_gladiator = Gladiator(gladiator_data.name, gladiator_data.race)
+    current_gladiator = Gladiator(gladiator_data.name, gladiator_data.race, use_race_stats=True)
     vitality = stats_with_bonus["health"]
     max_health = 1 + int(floor(vitality * 1.5))
     current_gladiator.vitality = vitality
@@ -235,7 +269,7 @@ def create_gladiator(gladiator_data: GladiatorCreate):
 def allocate_stat_points(allocation: StatAllocation):
     """Allocate unspent stat points from leveling."""
     with get_db() as db:
-        current_gladiator = _load_gladiator(db)
+        current_gladiator = _load_gladiator(db, apply_equipment_bonuses=True)
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
 
@@ -282,10 +316,16 @@ def allocate_stat_points(allocation: StatAllocation):
 def get_gladiator():
     """Get current gladiator stats."""
     with get_db() as db:
-        current_gladiator = _load_gladiator(db)
+        current_gladiator = _load_gladiator(db, apply_equipment_bonuses=True)
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
-        return GladiatorResponse(**current_gladiator.to_dict())
+        gladiator_row = db.query(GladiatorRow).first()
+        equipped_items = get_equipped_items(db, gladiator_row.id) if gladiator_row else {}
+        inventory = get_gladiator_equipment(db, gladiator_row.id) if gladiator_row else []
+        gladiator_dict = current_gladiator.to_dict()
+        gladiator_dict["equipped_items"] = {slot: item.model_dump() for slot, item in equipped_items.items()}
+        gladiator_dict["inventory"] = [item.model_dump() for item in inventory]
+        return GladiatorResponse(**gladiator_dict)
 
 
 @app.post("/gladiator/train")
@@ -313,7 +353,6 @@ def train_gladiator():
 
 from fastapi import Query, Request
 from fastapi.responses import JSONResponse
-from fastapi.exception_handlers import RequestValidationError
 from fastapi.exceptions import RequestValidationError as FastAPIRequestValidationError
 
 @app.exception_handler(Exception)
@@ -469,6 +508,123 @@ def finish_combat():
         "battle_log": battle_log
     }
 
+
+@app.get("/equipment")
+def get_equipment():
+    """Get all available equipment."""
+    with get_db() as db:
+        equipment = get_all_equipment(db)
+        return equipment
+
+
+@app.get("/equipment/shop")
+def get_equipment_shop():
+    """Get equipment available for purchase."""
+    with get_db() as db:
+        gladiator = _load_gladiator(db)
+        if gladiator is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        shop_items = get_shop_inventory(db, gladiator.level)
+        return ShopInventory(available_items=shop_items)
+
+
+@app.get("/gladiator/equipment")
+def get_gladiator_equipment_endpoint():
+    """Get all equipment owned by the gladiator."""
+    with get_db() as db:
+        gladiator_row = db.query(GladiatorRow).first()
+        if gladiator_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        equipment = get_gladiator_equipment(db, gladiator_row.id)
+        return equipment
+
+
+@app.get("/gladiator/equipment/equipped")
+def get_equipped_items_endpoint():
+    """Get currently equipped items."""
+    with get_db() as db:
+        gladiator_row = db.query(GladiatorRow).first()
+        if gladiator_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        equipped = get_equipped_items(db, gladiator_row.id)
+        return equipped
+
+
+@app.post("/equipment/equip")
+def equip_item_endpoint(request: EquipmentSlotRequest):
+    """Equip an item to a specific slot."""
+    with get_db() as db:
+        gladiator_row = db.query(GladiatorRow).first()
+        if gladiator_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        success = equip_item(db, gladiator_row.id, request)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to equip item")
+        return {"message": "Item equipped successfully"}
+
+
+@app.post("/equipment/unequip")
+def unequip_item_endpoint(slot: str):
+    """Unequip an item from a specific slot."""
+    with get_db() as db:
+        gladiator_row = db.query(GladiatorRow).first()
+        if gladiator_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        success = unequip_item(db, gladiator_row.id, slot)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to unequip item")
+        return {"message": "Item unequipped successfully"}
+
+
+@app.post("/equipment/purchase/{equipment_id}")
+def purchase_equipment_endpoint(equipment_id: int):
+    """Purchase equipment from the shop."""
+    with get_db() as db:
+        gladiator_row = db.query(GladiatorRow).first()
+        if gladiator_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        success = purchase_equipment(db, gladiator_row.id, equipment_id)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to purchase equipment")
+        updated_gladiator = _load_gladiator(db, apply_equipment_bonuses=True)
+        if updated_gladiator is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+        gladiator_dict = updated_gladiator.to_dict()
+        equipped_items = get_equipped_items(db, gladiator_row.id)
+        inventory = get_gladiator_equipment(db, gladiator_row.id)
+        gladiator_dict["equipped_items"] = {slot: item.model_dump() for slot, item in equipped_items.items()}
+        gladiator_dict["inventory"] = [item.model_dump() for item in inventory]
+        return GladiatorResponse(**gladiator_dict)
+
+
+@app.post("/init-database")
+def init_database():
+    """Initialize database tables and sample data."""
+    try:
+        Base.metadata.create_all(bind=engine)
+        with get_db() as db:
+            db.query(GladiatorEquipmentRow).delete()
+            db.commit()
+            initialize_equipment(db)
+        return {"message": "Database initialized successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize database: {e}")
+
+
+@app.post("/reset-database")
+def reset_database():
+    """Completely reset the database - remove all gladiators and equipment data."""
+    try:
+        Base.metadata.create_all(bind=engine)
+        with get_db() as db:
+            db.query(GladiatorEquipmentRow).delete()
+            db.query(GladiatorRow).delete()
+            db.query(EquipmentRow).delete()
+            db.commit()
+            initialize_equipment(db)
+        return {"message": "Database completely reset successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset database: {e}")
 
 
 

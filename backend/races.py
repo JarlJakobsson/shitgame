@@ -171,15 +171,3 @@ RACES = {
     }
 }
 
-
-def get_race(race_name):
-    """
-    Get race attributes by name.
-    
-    Args:
-        race_name (str): The name of the race
-        
-    Returns:
-        dict: Race attributes, or None if not found
-    """
-    return RACES.get(race_name)

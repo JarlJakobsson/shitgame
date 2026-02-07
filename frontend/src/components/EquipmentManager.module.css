@@ -1,0 +1,253 @@
+.container {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  color: #ffd700;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.goldDisplay {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.closeButton {
+  background: transparent;
+  color: #ffd700;
+  border: 1px solid #ffd700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.closeButton:hover {
+  background: rgba(255, 215, 0, 0.12);
+}
+
+.error {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff6b6b;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #ff6b6b;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem;
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.tab:hover {
+  color: #fff;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.tab.active {
+  color: #ffd700;
+  border-bottom: 2px solid #ffd700;
+}
+
+.inventorySection {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.equippedItems h3,
+.inventory h3,
+.shopSection h3 {
+  color: #ffd700;
+  margin-bottom: 1rem;
+}
+
+.slotsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.slot {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #667eea;
+}
+
+.slotName {
+  color: #ffd700;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.equippedItem {
+  color: #ccc;
+}
+
+.itemName {
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+}
+
+.itemStats {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-bottom: 0.5rem;
+}
+
+.unequipButton {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.emptySlot {
+  color: #666;
+  font-style: italic;
+}
+
+.inventoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.inventoryItem {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.itemType {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.equipButton {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.shopGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.shopItem {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.itemLevel {
+  color: #ffd700;
+  font-size: 0.9rem;
+}
+
+.itemDescription {
+  color: #aaa;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+
+.itemFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.itemValue {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.buyButton {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.buyButton:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  color: #ccc;
+  padding: 2rem;
+}
+
+.emptyInventory {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .tabs {
+    flex-direction: column;
+  }
+
+  .tab {
+    border-bottom: 1px solid #444;
+  }
+}

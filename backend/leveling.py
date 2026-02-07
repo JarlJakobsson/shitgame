@@ -4,13 +4,11 @@
 
 from __future__ import annotations
 
-import math
-
 # Power curve fitted so:
 # level 18 -> 3999 XP to level up
 # level 30 -> 8458 XP to level up
-_XP_POWER = 1.466387695400268
-_XP_COEFF = 57.70789704047412
+_XP_POWER = 1.4818954149270105
+_XP_COEFF = 54.81592736945923
 
 
 def xp_to_next(level: int) -> int:
