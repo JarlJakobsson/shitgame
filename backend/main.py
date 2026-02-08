@@ -3,16 +3,18 @@
 # ============================================
 
 from contextlib import asynccontextmanager
+from collections import defaultdict, deque
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError as FastAPIRequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
 from math import floor
+from threading import Lock
 import time
 import random
 
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, or_, text
 
 from models import (
     GladiatorCreate, GladiatorResponse, StatAllocation,
@@ -64,12 +66,18 @@ class StripApiPrefixMiddleware:
 
 app.add_middleware(StripApiPrefixMiddleware)
 
+
+DEFAULT_PLAYER_TOKEN = "single-player"
+PLAYER_ID_HEADER = "X-Player-ID"
+
+
 def _init_db():
     attempts = 0
     while True:
         try:
             Base.metadata.create_all(bind=engine)
             _ensure_equipped_items_column()
+            _ensure_player_token_column()
             with get_db() as db:
                 initialize_equipment(db)
             return
@@ -90,43 +98,50 @@ def _ensure_equipped_items_column():
         conn.execute(text("ALTER TABLE gladiators ADD COLUMN equipped_items JSON"))
 
 
-# List available enemies
-@app.get("/enemies")
-def get_enemies():
-    """Get all available enemies."""
-    with get_db() as db:
-        gladiator = _load_gladiator(db)
-        if gladiator is None:
-            return {}
-        level = gladiator.level
-        return {
-            name: data
-            for name, data in ENEMIES.items()
-            if data.get("min_level", 1) <= level
-        }
-
-# Enable CORS for frontend access
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Combat remains in-memory per instance. Gladiator is persisted.
-current_combat: Combat | None = None
+def _ensure_player_token_column():
+    inspector = inspect(engine)
+    if "gladiators" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("gladiators")}
+    if "player_token" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE gladiators ADD COLUMN player_token VARCHAR(120)"))
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE gladiators "
+                "SET player_token = :default_token "
+                "WHERE player_token IS NULL OR player_token = ''"
+            ),
+            {"default_token": DEFAULT_PLAYER_TOKEN},
+        )
 
 
-def _load_gladiator(db, apply_equipment_bonuses: bool = False) -> Gladiator | None:
-    row = db.query(GladiatorRow).first()
-    if not row:
+def _resolve_player_token(request: Request | None) -> str:
+    if request is None:
+        return DEFAULT_PLAYER_TOKEN
+    header_value = request.headers.get(PLAYER_ID_HEADER, "").strip()
+    return header_value or DEFAULT_PLAYER_TOKEN
+
+
+def _get_gladiator_row(db, player_token: str) -> GladiatorRow | None:
+    row = db.query(GladiatorRow).filter(GladiatorRow.player_token == player_token).first()
+    if row is not None:
+        return row
+    if player_token != DEFAULT_PLAYER_TOKEN:
         return None
+    legacy_row = db.query(GladiatorRow).filter(
+        or_(GladiatorRow.player_token.is_(None), GladiatorRow.player_token == "")
+    ).first()
+    if legacy_row is None:
+        return None
+    legacy_row.player_token = DEFAULT_PLAYER_TOKEN
+    db.commit()
+    db.refresh(legacy_row)
+    return legacy_row
+
+
+def _gladiator_from_row(db, row: GladiatorRow, apply_equipment_bonuses: bool) -> Gladiator:
     gladiator = Gladiator(row.name, row.race, use_race_stats=True)
     gladiator.apply_persisted_stats({
         "name": row.name,
@@ -159,11 +174,84 @@ def _load_gladiator(db, apply_equipment_bonuses: bool = False) -> Gladiator | No
     return gladiator
 
 
-def _save_gladiator(db, gladiator: Gladiator):
-    row = db.query(GladiatorRow).first()
+# List available enemies
+@app.get("/enemies")
+def get_enemies(request: Request):
+    """Get all available enemies."""
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        gladiator = _load_gladiator(db, player_token)
+        if gladiator is None:
+            return {}
+        level = gladiator.level
+        return {
+            name: data
+            for name, data in ENEMIES.items()
+            if data.get("min_level", 1) <= level
+        }
+
+# Enable CORS for frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Combat is tracked per player token.
+current_combat: Combat | None = None
+current_combats: dict[str, Combat] = {}
+
+# PVP random queue + notifications are in-memory for a single app instance.
+random_battle_queue = deque()
+random_battle_notifications = defaultdict(list)
+random_battle_lock = Lock()
+
+
+def _load_gladiator(db, player_token: str = DEFAULT_PLAYER_TOKEN, apply_equipment_bonuses: bool = False) -> Gladiator | None:
+    row = _get_gladiator_row(db, player_token)
     if not row:
-        row = GladiatorRow()
+        return None
+    return _gladiator_from_row(db, row, apply_equipment_bonuses)
+
+
+def _get_current_combat(player_token: str) -> Combat | None:
+    if player_token == DEFAULT_PLAYER_TOKEN:
+        return current_combat
+    return current_combats.get(player_token)
+
+
+def _set_current_combat(player_token: str, combat: Combat | None):
+    global current_combat
+    if combat is None:
+        current_combats.pop(player_token, None)
+        if player_token == DEFAULT_PLAYER_TOKEN:
+            current_combat = None
+        return
+    current_combats[player_token] = combat
+    if player_token == DEFAULT_PLAYER_TOKEN:
+        current_combat = combat
+
+
+def _save_gladiator(
+    db,
+    gladiator: Gladiator,
+    player_token: str = DEFAULT_PLAYER_TOKEN,
+    row: GladiatorRow | None = None,
+):
+    if row is None:
+        row = _get_gladiator_row(db, player_token)
+    if not row:
+        row = GladiatorRow(player_token=player_token)
         db.add(row)
+    else:
+        row.player_token = player_token
 
     row.name = gladiator.name
     row.race = gladiator.race
@@ -184,6 +272,49 @@ def _save_gladiator(db, gladiator: Gladiator):
 
     db.commit()
     db.refresh(row)
+    return row
+
+
+def _queue_notification(player_token: str, message: str):
+    random_battle_notifications[player_token].append(
+        {"type": "random_battle", "message": message}
+    )
+
+
+def _run_random_battle(db, challenger_row: GladiatorRow, opponent_row: GladiatorRow):
+    challenger = _gladiator_from_row(db, challenger_row, apply_equipment_bonuses=True)
+    opponent = _gladiator_from_row(db, opponent_row, apply_equipment_bonuses=True)
+
+    challenger.current_health = challenger.max_health
+    opponent.current_health = opponent.max_health
+
+    combat = Combat(challenger, opponent)
+    winner = None
+    while winner is None:
+        round_info = combat.execute_round()
+        winner = round_info["winner"]
+
+    if winner == "player":
+        challenger.wins += 1
+        opponent.losses += 1
+        winner_name = challenger.name
+        loser_name = opponent.name
+    else:
+        challenger.losses += 1
+        opponent.wins += 1
+        winner_name = opponent.name
+        loser_name = challenger.name
+
+    _save_gladiator(db, challenger, challenger_row.player_token, row=challenger_row)
+    _save_gladiator(db, opponent, opponent_row.player_token, row=opponent_row)
+
+    return {
+        "winner_name": winner_name,
+        "loser_name": loser_name,
+        "rounds": combat.round,
+        "challenger_survived": challenger.is_alive(),
+        "opponent_survived": opponent.is_alive(),
+    }
 
 
 # ============================================
@@ -203,14 +334,9 @@ def get_races():
 
 
 @app.post("/gladiator")
-def create_gladiator(gladiator_data: GladiatorCreate):
+def create_gladiator(gladiator_data: GladiatorCreate, request: Request):
     """Create a new gladiator."""
-    with get_db() as db:
-        db.query(GladiatorEquipmentRow).delete()
-        existing = db.query(GladiatorRow).first()
-        if existing:
-            db.delete(existing)
-        db.commit()
+    player_token = _resolve_player_token(request)
 
     if gladiator_data.race not in RACES:
         raise HTTPException(status_code=400, detail="Invalid race")
@@ -266,15 +392,25 @@ def create_gladiator(gladiator_data: GladiatorCreate):
     current_gladiator.weaponskill = stats_with_bonus["weaponskill"]
     current_gladiator.stamina = stats_with_bonus["stamina"]
     with get_db() as db:
-        _save_gladiator(db, current_gladiator)
+        existing = _get_gladiator_row(db, player_token)
+        if existing:
+            db.query(GladiatorEquipmentRow).filter(
+                GladiatorEquipmentRow.gladiator_id == existing.id
+            ).delete()
+            db.delete(existing)
+            db.commit()
+        _save_gladiator(db, current_gladiator, player_token)
     return GladiatorResponse(**current_gladiator.to_dict())
 
 
 @app.post("/gladiator/allocate")
-def allocate_stat_points(allocation: StatAllocation):
+def allocate_stat_points(allocation: StatAllocation, request: Request):
     """Allocate unspent stat points from leveling."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        current_gladiator = _load_gladiator(db, apply_equipment_bonuses=True)
+        current_gladiator = _load_gladiator(
+            db, player_token, apply_equipment_bonuses=True
+        )
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
 
@@ -313,18 +449,21 @@ def allocate_stat_points(allocation: StatAllocation):
     current_gladiator.stat_points -= total_points
 
     with get_db() as db:
-        _save_gladiator(db, current_gladiator)
+        _save_gladiator(db, current_gladiator, player_token)
     return GladiatorResponse(**current_gladiator.to_dict())
 
 
 @app.get("/gladiator")
-def get_gladiator():
+def get_gladiator(request: Request):
     """Get current gladiator stats."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        current_gladiator = _load_gladiator(db, apply_equipment_bonuses=True)
+        current_gladiator = _load_gladiator(
+            db, player_token, apply_equipment_bonuses=True
+        )
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
-        gladiator_row = db.query(GladiatorRow).first()
+        gladiator_row = _get_gladiator_row(db, player_token)
         equipped_items = get_equipped_items(db, gladiator_row.id) if gladiator_row else {}
         inventory = get_gladiator_equipment(db, gladiator_row.id) if gladiator_row else []
         gladiator_dict = current_gladiator.to_dict()
@@ -334,10 +473,11 @@ def get_gladiator():
 
 
 @app.post("/gladiator/train")
-def train_gladiator():
+def train_gladiator(request: Request):
     """Train the gladiator."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        current_gladiator = _load_gladiator(db)
+        current_gladiator = _load_gladiator(db, player_token)
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
         if current_gladiator.gold < 10:
@@ -352,7 +492,7 @@ def train_gladiator():
         current_gladiator.current_health = current_gladiator.max_health
         apply_experience(current_gladiator, 10)
 
-        _save_gladiator(db, current_gladiator)
+        _save_gladiator(db, current_gladiator, player_token)
         return GladiatorResponse(**current_gladiator.to_dict())
 
 @app.exception_handler(Exception)
@@ -374,11 +514,10 @@ async def validation_exception_handler(request, exc):
 
 @app.post("/combat/start")
 async def start_combat(request: Request, enemy_name: str = Query(None)):
-    global current_combat
-
+    player_token = _resolve_player_token(request)
     print("POST /combat/start called")
     with get_db() as db:
-        current_gladiator = _load_gladiator(db)
+        current_gladiator = _load_gladiator(db, player_token)
         if current_gladiator is None:
             print("No gladiator created")
             raise HTTPException(status_code=404, detail="No gladiator created")
@@ -396,7 +535,7 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
     # Reset player health
     current_gladiator.current_health = current_gladiator.max_health
     with get_db() as db:
-        _save_gladiator(db, current_gladiator)
+        _save_gladiator(db, current_gladiator, player_token)
 
     # If enemy_name is provided and valid, use it
     opponent = None
@@ -426,11 +565,12 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
             opponent.max_health = int(opponent.max_health * 1.1)
         opponent.current_health = opponent.max_health
 
-    current_combat = Combat(current_gladiator, opponent)
+    combat = Combat(current_gladiator, opponent)
+    _set_current_combat(player_token, combat)
 
     print(f"Combat started: player={current_gladiator.name}, opponent={opponent.name}")
 
-    if current_combat is None:
+    if _get_current_combat(player_token) is None:
         print("Failed to initialize combat")
         raise HTTPException(status_code=500, detail="Failed to initialize combat")
 
@@ -444,34 +584,37 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
 
 
 @app.post("/combat/round")
-def execute_combat_round():
+def execute_combat_round(request: Request):
     """Execute one round of combat."""
-    if current_combat is None:
+    player_token = _resolve_player_token(request)
+    combat = _get_current_combat(player_token)
+    if combat is None:
         print("No active combat when trying to execute round.")
         raise HTTPException(status_code=400, detail="No active combat. Please start a new combat.")
     
-    round_info = current_combat.execute_round()
-    current_combat.battle_log.append(f"Round {round_info['round']}")
-    current_combat.battle_log.extend(round_info["actions"])
+    round_info = combat.execute_round()
+    combat.battle_log.append(f"Round {round_info['round']}")
+    combat.battle_log.extend(round_info["actions"])
     
     return {
         "round": round_info["round"],
         "actions": round_info["actions"],
-        "player_health": current_combat.player.current_health,
-        "opponent_health": current_combat.opponent.current_health,
+        "player_health": combat.player.current_health,
+        "opponent_health": combat.opponent.current_health,
         "winner": round_info["winner"]
     }
 
 
 @app.post("/combat/finish")
-def finish_combat():
-    global current_combat
+def finish_combat(request: Request):
     """Finish combat and award rewards."""
-    if current_combat is None:
+    player_token = _resolve_player_token(request)
+    combat = _get_current_combat(player_token)
+    if combat is None:
         raise HTTPException(status_code=400, detail="No active combat")
     
-    player = current_combat.player
-    opponent = current_combat.opponent
+    player = combat.player
+    opponent = combat.opponent
     
     if player.is_alive():
         # Determine difficulty
@@ -483,8 +626,8 @@ def finish_combat():
         player.gold += reward_gold
         player.wins += 1
         # Add gold/exp to combat log
-        if hasattr(current_combat, "battle_log"):
-            current_combat.battle_log.append(f"You earned {reward_gold} gold and {reward_exp} experience!")
+        if hasattr(combat, "battle_log"):
+            combat.battle_log.append(f"You earned {reward_gold} gold and {reward_exp} experience!")
         result = "victory"
     else:
         player.losses += 1
@@ -492,13 +635,13 @@ def finish_combat():
 
     # Get final battle log
     battle_log = []
-    if hasattr(current_combat, "battle_log"):
-        battle_log = current_combat.battle_log
+    if hasattr(combat, "battle_log"):
+        battle_log = combat.battle_log
 
     with get_db() as db:
-        _save_gladiator(db, player)
+        _save_gladiator(db, player, player_token)
 
-    current_combat = None
+    _set_current_combat(player_token, None)
 
     return {
         "result": result,
@@ -507,6 +650,66 @@ def finish_combat():
         "reward_exp": reward_exp if player.is_alive() else 0,
         "battle_log": battle_log
     }
+
+
+@app.post("/pvp/random-battle/join")
+def join_random_battle(request: Request):
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        challenger_row = _get_gladiator_row(db, player_token)
+        if challenger_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+
+    with random_battle_lock:
+        if player_token in random_battle_queue:
+            return {"status": "queued", "message": "Already waiting in random battle queue."}
+
+        opponent_token = None
+        while random_battle_queue and opponent_token is None:
+            queued_token = random_battle_queue.popleft()
+            if queued_token != player_token:
+                opponent_token = queued_token
+
+        if opponent_token is None:
+            random_battle_queue.append(player_token)
+            return {"status": "queued", "message": "Joined queue. Waiting for opponent."}
+
+    with get_db() as db:
+        challenger_row = _get_gladiator_row(db, player_token)
+        opponent_row = _get_gladiator_row(db, opponent_token)
+        if challenger_row is None or opponent_row is None:
+            with random_battle_lock:
+                if player_token not in random_battle_queue:
+                    random_battle_queue.append(player_token)
+            return {"status": "queued", "message": "Joined queue. Waiting for opponent."}
+
+        result = _run_random_battle(db, challenger_row, opponent_row)
+
+    with random_battle_lock:
+        _queue_notification(
+            player_token,
+            f"Random battle complete: {result['winner_name']} defeated {result['loser_name']} in {result['rounds']} rounds.",
+        )
+        _queue_notification(
+            opponent_token,
+            f"Random battle complete: {result['winner_name']} defeated {result['loser_name']} in {result['rounds']} rounds.",
+        )
+
+    return {
+        "status": "matched",
+        "message": "Random battle completed.",
+        "battle_result": result,
+    }
+
+
+@app.get("/notifications")
+def get_notifications(request: Request):
+    player_token = _resolve_player_token(request)
+    with random_battle_lock:
+        notifications = list(random_battle_notifications.get(player_token, []))
+        random_battle_notifications[player_token] = []
+        is_queued = player_token in random_battle_queue
+    return {"notifications": notifications, "queued_for_random_battle": is_queued}
 
 
 @app.get("/equipment")
@@ -518,21 +721,23 @@ def get_equipment():
 
 
 @app.get("/equipment/shop")
-def get_equipment_shop():
+def get_equipment_shop(request: Request):
     """Get equipment available for purchase."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        gladiator = _load_gladiator(db)
-        if gladiator is None:
+        gladiator_row = _get_gladiator_row(db, player_token)
+        if gladiator_row is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
-        shop_items = get_shop_inventory(db, gladiator.level)
+        shop_items = get_shop_inventory(db, gladiator_row.level, gladiator_row.id)
         return ShopInventory(available_items=shop_items)
 
 
 @app.get("/gladiator/equipment")
-def get_gladiator_equipment_endpoint():
+def get_gladiator_equipment_endpoint(request: Request):
     """Get all equipment owned by the gladiator."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        gladiator_row = db.query(GladiatorRow).first()
+        gladiator_row = _get_gladiator_row(db, player_token)
         if gladiator_row is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
         equipment = get_gladiator_equipment(db, gladiator_row.id)
@@ -540,10 +745,11 @@ def get_gladiator_equipment_endpoint():
 
 
 @app.get("/gladiator/equipment/equipped")
-def get_equipped_items_endpoint():
+def get_equipped_items_endpoint(request: Request):
     """Get currently equipped items."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        gladiator_row = db.query(GladiatorRow).first()
+        gladiator_row = _get_gladiator_row(db, player_token)
         if gladiator_row is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
         equipped = get_equipped_items(db, gladiator_row.id)
@@ -551,23 +757,25 @@ def get_equipped_items_endpoint():
 
 
 @app.post("/equipment/equip")
-def equip_item_endpoint(request: EquipmentSlotRequest):
+def equip_item_endpoint(request_data: EquipmentSlotRequest, request: Request):
     """Equip an item to a specific slot."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        gladiator_row = db.query(GladiatorRow).first()
+        gladiator_row = _get_gladiator_row(db, player_token)
         if gladiator_row is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
-        success = equip_item(db, gladiator_row.id, request)
+        success = equip_item(db, gladiator_row.id, request_data)
         if not success:
             raise HTTPException(status_code=400, detail="Failed to equip item")
         return {"message": "Item equipped successfully"}
 
 
 @app.post("/equipment/unequip")
-def unequip_item_endpoint(slot: str):
+def unequip_item_endpoint(request: Request, slot: str):
     """Unequip an item from a specific slot."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        gladiator_row = db.query(GladiatorRow).first()
+        gladiator_row = _get_gladiator_row(db, player_token)
         if gladiator_row is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
         success = unequip_item(db, gladiator_row.id, slot)
@@ -577,16 +785,19 @@ def unequip_item_endpoint(slot: str):
 
 
 @app.post("/equipment/purchase/{equipment_id}")
-def purchase_equipment_endpoint(equipment_id: int):
+def purchase_equipment_endpoint(equipment_id: int, request: Request):
     """Purchase equipment from the shop."""
+    player_token = _resolve_player_token(request)
     with get_db() as db:
-        gladiator_row = db.query(GladiatorRow).first()
+        gladiator_row = _get_gladiator_row(db, player_token)
         if gladiator_row is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
         success = purchase_equipment(db, gladiator_row.id, equipment_id)
         if not success:
             raise HTTPException(status_code=400, detail="Failed to purchase equipment")
-        updated_gladiator = _load_gladiator(db, apply_equipment_bonuses=True)
+        updated_gladiator = _load_gladiator(
+            db, player_token, apply_equipment_bonuses=True
+        )
         if updated_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
         gladiator_dict = updated_gladiator.to_dict()

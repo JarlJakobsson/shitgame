@@ -15,9 +15,11 @@ interface GameDashboardProps {
   gladiator: GladiatorWithEquipment
   onTrain: () => void
   onFight: () => void
+  onRandomBattle: () => void
   onAllocateStats: () => void
   onLogout: () => void
   loading: boolean
+  queuedForRandomBattle: boolean
   onGladiatorUpdate: (gladiator: GladiatorWithEquipment) => void
 }
 
@@ -25,9 +27,11 @@ export function GameDashboard({
   gladiator,
   onTrain,
   onFight,
+  onRandomBattle,
   onAllocateStats,
   onLogout,
   loading,
+  queuedForRandomBattle,
   onGladiatorUpdate,
 }: GameDashboardProps) {
   const healthPercentage = (gladiator.current_health / gladiator.max_health) * 100
@@ -166,6 +170,13 @@ export function GameDashboard({
             disabled={loading}
           >
             Fight in Arena
+          </button>
+          <button
+            className={styles.primaryButton}
+            onClick={onRandomBattle}
+            disabled={loading || queuedForRandomBattle}
+          >
+            {queuedForRandomBattle ? 'Queued for Random Battle...' : 'Random Battle'}
           </button>
           <button
             className={styles.button}

@@ -62,13 +62,17 @@ class TestEquipment:
         initialize_equipment(db_session)
         gladiator = _create_gladiator(db_session, level=1, gold=100)
 
-        level_one_items = get_shop_inventory(db_session, gladiator_level=1)
+        level_one_items = get_shop_inventory(
+            db_session, gladiator_level=1, gladiator_id=gladiator.id
+        )
         assert all(item.level_requirement <= 1 for item in level_one_items)
 
         db_session.add(GladiatorEquipmentRow(gladiator_id=gladiator.id, equipment_id=1, is_equipped=0))
         db_session.commit()
 
-        after_owning_item = get_shop_inventory(db_session, gladiator_level=1)
+        after_owning_item = get_shop_inventory(
+            db_session, gladiator_level=1, gladiator_id=gladiator.id
+        )
         assert 1 not in [item.id for item in after_owning_item]
 
     def test_get_gladiator_equipment(self, db_session):

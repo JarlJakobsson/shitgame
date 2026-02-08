@@ -144,7 +144,7 @@ class TestEquipmentAPI:
 
     def test_equip_item_no_gladiator(self):
         mock_db = Mock()
-        mock_db.query.return_value.first.return_value = None
+        mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with patch("main.get_db", _mock_get_db(mock_db)):
             response = client.post("/equipment/equip", json={"equipment_id": 1, "slot": "head"})

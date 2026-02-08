@@ -45,6 +45,7 @@ class GladiatorRow(Base):
     __tablename__ = "gladiators"
 
     id = Column(Integer, primary_key=True)
+    player_token = Column(String, nullable=False, default="single-player", index=True)
     name = Column(String, nullable=False)
     race = Column(String, nullable=False)
     level = Column(Integer, nullable=False, default=1)

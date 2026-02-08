@@ -10,6 +10,37 @@ const api = axios.create({
 
 });
 
+const PLAYER_ID_STORAGE_KEY = 'gladiator_player_id';
+
+const generatePlayerId = (): string => {
+  return `player-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const getPlayerId = (): string => {
+  if (typeof window === 'undefined') {
+    return 'single-player';
+  }
+  try {
+    const existing = window.sessionStorage.getItem(PLAYER_ID_STORAGE_KEY);
+    if (existing) {
+      return existing;
+    }
+    const newPlayerId = generatePlayerId();
+    window.sessionStorage.setItem(PLAYER_ID_STORAGE_KEY, newPlayerId);
+    return newPlayerId;
+  } catch {
+    return generatePlayerId();
+  }
+};
+
+api.interceptors.request.use((config) => {
+  const playerId = getPlayerId();
+  const headers = config.headers ?? {};
+  headers['X-Player-ID'] = playerId;
+  config.headers = headers;
+  return config;
+});
+
 export interface Gladiator {
   weaponskill: number;
   initiative: number;
@@ -98,6 +129,28 @@ export interface CombatFinishResponse {
   battle_log: string[];
 }
 
+export interface NotificationItem {
+  type: string;
+  message: string;
+}
+
+export interface NotificationsResponse {
+  notifications: NotificationItem[];
+  queued_for_random_battle: boolean;
+}
+
+export interface RandomBattleJoinResponse {
+  status: 'queued' | 'matched';
+  message: string;
+  battle_result?: {
+    winner_name: string;
+    loser_name: string;
+    rounds: number;
+    challenger_survived: boolean;
+    opponent_survived: boolean;
+  };
+}
+
 export interface Equipment {
   id: number;
   name: string;
@@ -177,6 +230,16 @@ export const gameAPI = {
 
   finishCombat: async (): Promise<CombatFinishResponse> => {
     const response = await api.post('/combat/finish');
+    return response.data;
+  },
+
+  joinRandomBattle: async (): Promise<RandomBattleJoinResponse> => {
+    const response = await api.post('/pvp/random-battle/join');
+    return response.data;
+  },
+
+  getNotifications: async (): Promise<NotificationsResponse> => {
+    const response = await api.get('/notifications');
     return response.data;
   },
 

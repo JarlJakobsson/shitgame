@@ -35,10 +35,51 @@ export default function App() {
   const [gladiator, setGladiator] = useState<GladiatorWithEquipment | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [queuedForRandomBattle, setQueuedForRandomBattle] = useState(false)
+  const [notices, setNotices] = useState<string[]>([])
 
   useEffect(() => {
     void loadRaces()
   }, [])
+
+  useEffect(() => {
+    if (!gladiator) {
+      setQueuedForRandomBattle(false)
+      return
+    }
+
+    let active = true
+    const pollNotifications = async () => {
+      try {
+        const data = await gameAPI.getNotifications()
+        if (!active) {
+          return
+        }
+        setQueuedForRandomBattle(data.queued_for_random_battle)
+        if (data.notifications.length > 0) {
+          const messages = data.notifications.map((item) => item.message)
+          setNotices((prev) => [...messages, ...prev].slice(0, 8))
+          const refreshed = await gameAPI.getGladiatorWithEquipment()
+          if (!active) {
+            return
+          }
+          setGladiator(refreshed)
+        }
+      } catch {
+        // Ignore transient poll failures.
+      }
+    }
+
+    void pollNotifications()
+    const intervalId = window.setInterval(() => {
+      void pollNotifications()
+    }, 2500)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+    }
+  }, [gladiator?.name])
 
   const loadRaces = async () => {
     try {
@@ -125,6 +166,8 @@ export default function App() {
     setGladiator(null)
     setSelectedRaceName(null)
     setSelectedStats(DEFAULT_STATS)
+    setQueuedForRandomBattle(false)
+    setNotices([])
     setError('')
     setView('menu')
   }
@@ -150,6 +193,22 @@ export default function App() {
       setView('dashboard')
     } catch (err) {
       setError('Failed to allocate stats.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRandomBattle = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const result = await gameAPI.joinRandomBattle()
+      if (result.status === 'queued') {
+        setQueuedForRandomBattle(true)
+      }
+      setNotices((prev) => [result.message, ...prev].slice(0, 8))
+    } catch {
+      setError('Failed to enter random battle queue.')
     } finally {
       setLoading(false)
     }
@@ -194,9 +253,11 @@ export default function App() {
           gladiator={gladiator}
           onTrain={handleTrain}
           onFight={handleFight}
+          onRandomBattle={handleRandomBattle}
           onAllocateStats={handleAllocateStats}
           onLogout={handleLogout}
           loading={loading}
+          queuedForRandomBattle={queuedForRandomBattle}
           onGladiatorUpdate={setGladiator}
         />
       )
@@ -243,6 +304,11 @@ export default function App() {
   return (
     <div className="app">
       {error && <div className="app__error">{error}</div>}
+      {notices.length > 0 && (
+        <div className="app__error">
+          {notices[0]}
+        </div>
+      )}
       {content}
     </div>
   )
