@@ -86,6 +86,7 @@ def _init_db():
             Base.metadata.create_all(bind=engine)
             _ensure_equipped_items_column()
             _ensure_player_token_column()
+            _ensure_fight_history_columns()
             with get_db() as db:
                 initialize_equipment(db)
             return
@@ -123,6 +124,16 @@ def _ensure_player_token_column():
             ),
             {"default_token": DEFAULT_PLAYER_TOKEN},
         )
+
+
+def _ensure_fight_history_columns():
+    inspector = inspect(engine)
+    if "fight_history" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("fight_history")}
+    if "battle_snapshot" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE fight_history ADD COLUMN battle_snapshot JSON"))
 
 
 def _resolve_player_token(request: Request | None) -> str:
@@ -307,6 +318,38 @@ def _simulate_full_combat(combat: Combat):
     return winner
 
 
+def _build_battle_screen(
+    player,
+    opponent,
+    result: str,
+    battle_log: list[str] | None,
+    reward_gold: int = 0,
+    reward_exp: int = 0,
+    rounds: int = 0,
+):
+    return {
+        "player": {
+            "name": player.name,
+            "race": getattr(player, "race", "Unknown") or "Unknown",
+            "level": int(getattr(player, "level", 0) or 0),
+            "current_health": int(player.current_health),
+            "max_health": int(player.max_health),
+        },
+        "opponent": {
+            "name": opponent.name,
+            "race": getattr(opponent, "race", "Unknown") or "Unknown",
+            "level": int(getattr(opponent, "level", 0) or 0),
+            "current_health": int(opponent.current_health),
+            "max_health": int(opponent.max_health),
+        },
+        "result": result,
+        "reward_gold": int(reward_gold),
+        "reward_exp": int(reward_exp),
+        "rounds": int(rounds),
+        "battle_log": list(battle_log or []),
+    }
+
+
 def _record_fight_history(
     db,
     player_token: str,
@@ -316,6 +359,7 @@ def _record_fight_history(
     opponent_level: int,
     result: str,
     battle_log: list[str] | None,
+    battle_snapshot: dict | None = None,
 ):
     row = FightHistoryRow(
         player_token=player_token,
@@ -325,6 +369,7 @@ def _record_fight_history(
         opponent_level=max(0, int(opponent_level)),
         result=result,
         battle_log=list(battle_log or []),
+        battle_snapshot=battle_snapshot,
     )
     db.add(row)
     return row
@@ -358,6 +403,25 @@ def _run_pvp_battle(db, challenger_row: GladiatorRow, opponent_row: GladiatorRow
     _save_gladiator(db, challenger, challenger_row.player_token, row=challenger_row)
     _save_gladiator(db, opponent, opponent_row.player_token, row=opponent_row)
 
+    challenger_battle_screen = _build_battle_screen(
+        player=challenger,
+        opponent=opponent,
+        result=challenger_result,
+        battle_log=combat.battle_log,
+        reward_gold=0,
+        reward_exp=0,
+        rounds=combat.round,
+    )
+    opponent_battle_screen = _build_battle_screen(
+        player=opponent,
+        opponent=challenger,
+        result=opponent_result,
+        battle_log=combat.battle_log,
+        reward_gold=0,
+        reward_exp=0,
+        rounds=combat.round,
+    )
+
     return {
         "winner_name": winner_name,
         "loser_name": loser_name,
@@ -367,6 +431,8 @@ def _run_pvp_battle(db, challenger_row: GladiatorRow, opponent_row: GladiatorRow
         "challenger_result": challenger_result,
         "opponent_result": opponent_result,
         "battle_log": list(combat.battle_log),
+        "challenger_battle_screen": challenger_battle_screen,
+        "opponent_battle_screen": opponent_battle_screen,
     }
 
 
@@ -706,6 +772,16 @@ def finish_combat(request: Request):
             opponent_level = int(ENEMIES[opponent.name].get("min_level", 0))
         else:
             opponent_level = int(getattr(opponent, "level", 0) or 0)
+        battle_screen = _build_battle_screen(
+            player=player,
+            opponent=opponent,
+            result=result,
+            battle_log=battle_log,
+            reward_gold=reward_gold if player.is_alive() else 0,
+            reward_exp=reward_exp if player.is_alive() else 0,
+            rounds=combat.round,
+        )
+        battle_screen["opponent"]["level"] = opponent_level
         _record_fight_history(
             db,
             player_token=player_token,
@@ -715,6 +791,7 @@ def finish_combat(request: Request):
             opponent_level=opponent_level,
             result=result,
             battle_log=battle_log,
+            battle_snapshot=battle_screen,
         )
         db.commit()
 
@@ -862,6 +939,7 @@ def accept_pvp_challenge(challenge_id: int, request: Request):
             opponent_level=challenged_row.level,
             result=battle_result["challenger_result"],
             battle_log=battle_result["battle_log"],
+            battle_snapshot=battle_result["challenger_battle_screen"],
         )
         _record_fight_history(
             db,
@@ -872,6 +950,7 @@ def accept_pvp_challenge(challenge_id: int, request: Request):
             opponent_level=challenger_row.level,
             result=battle_result["opponent_result"],
             battle_log=battle_result["battle_log"],
+            battle_snapshot=battle_result["opponent_battle_screen"],
         )
         challenge.status = "accepted"
         challenge.resolved_at = datetime.now(timezone.utc)
@@ -934,6 +1013,7 @@ def join_random_battle(request: Request):
             opponent_level=opponent_row.level,
             result=result["challenger_result"],
             battle_log=result["battle_log"],
+            battle_snapshot=result["challenger_battle_screen"],
         )
         _record_fight_history(
             db,
@@ -944,6 +1024,7 @@ def join_random_battle(request: Request):
             opponent_level=challenger_row.level,
             result=result["opponent_result"],
             battle_log=result["battle_log"],
+            battle_snapshot=result["opponent_battle_screen"],
         )
         db.commit()
 
@@ -1014,6 +1095,27 @@ def get_fight_history_detail(fight_id: int, request: Request):
         )
         if row is None:
             raise HTTPException(status_code=404, detail="Fight not found")
+        battle_screen = row.battle_snapshot or {
+            "player": {
+                "name": "You",
+                "race": "Unknown",
+                "level": 0,
+                "current_health": 0,
+                "max_health": 0,
+            },
+            "opponent": {
+                "name": row.opponent_name,
+                "race": row.opponent_race,
+                "level": row.opponent_level,
+                "current_health": 0,
+                "max_health": 0,
+            },
+            "result": row.result,
+            "reward_gold": 0,
+            "reward_exp": 0,
+            "rounds": 0,
+            "battle_log": row.battle_log or [],
+        }
         return {
             "id": row.id,
             "mode": row.mode,
@@ -1022,6 +1124,7 @@ def get_fight_history_detail(fight_id: int, request: Request):
             "opponent_level": row.opponent_level,
             "result": row.result,
             "battle_log": row.battle_log or [],
+            "battle_screen": battle_screen,
             "created_at": row.created_at.isoformat() if row.created_at else None,
         }
 

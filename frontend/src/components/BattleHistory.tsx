@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import gameAPI, { FightHistoryDetail, FightHistoryEntry } from '../services/gameAPI'
+import { Arena } from './Arena'
 import styles from './BattleHistory.module.css'
 
 interface BattleHistoryProps {
@@ -44,53 +45,48 @@ export function BattleHistory({ onBack }: BattleHistoryProps) {
   }
 
   if (selectedFight) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.panel}>
-          <div className={styles.header}>
-            <div>
-              <div className={styles.title}>Battle Replay</div>
-              <div className={styles.subtitle}>Combat log from this finished fight.</div>
-            </div>
-            <div className={styles.actions}>
-              <button className={styles.button} onClick={() => setSelectedFight(null)}>
-                Back to History
-              </button>
-              <button className={styles.button} onClick={onBack}>
-                Return to Dashboard
-              </button>
-            </div>
-          </div>
+    const battleScreen = selectedFight.battle_screen ?? {
+      player: {
+        name: 'You',
+        race: 'Human',
+        level: 0,
+        current_health: 0,
+        max_health: 0,
+      },
+      opponent: {
+        name: selectedFight.opponent_name,
+        race: selectedFight.opponent_race,
+        level: selectedFight.opponent_level,
+        current_health: 0,
+        max_health: 0,
+      },
+      result: selectedFight.result,
+      reward_gold: 0,
+      reward_exp: 0,
+      rounds: 0,
+      battle_log: selectedFight.battle_log,
+    }
 
-          <div className={styles.battlePanel}>
-            <div className={styles.battleTitle}>
-              vs {selectedFight.opponent_name}
-            </div>
-            <div className={styles.battleMeta}>
-              {selectedFight.opponent_race} | Level {selectedFight.opponent_level} | Mode: {selectedFight.mode}
-            </div>
-            <div className={selectedFight.result === 'victory' ? styles.resultWin : styles.resultLoss}>
-              Result: {selectedFight.result.toUpperCase()}
-            </div>
-            <div className={styles.log}>
-              {selectedFight.battle_log.length === 0 && (
-                <div className={styles.logEntry}>No battle log recorded.</div>
-              )}
-              {selectedFight.battle_log.map((entry, idx) => {
-                const isRoundMarker = entry.startsWith('Round ')
-                return (
-                  <div
-                    key={`${selectedFight.id}-${idx}`}
-                    className={`${styles.logEntry} ${isRoundMarker ? styles.roundMarker : ''}`}
-                  >
-                    {entry}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+    return (
+      <Arena
+        onBattleEnd={onBack}
+        playerRace={battleScreen.player.race || 'Human'}
+        replayData={{
+          player_name: battleScreen.player.name,
+          player_race: battleScreen.player.race || 'Human',
+          opponent_name: battleScreen.opponent.name,
+          opponent_race: battleScreen.opponent.race || 'Unknown',
+          player_health: battleScreen.player.current_health,
+          player_max_health: battleScreen.player.max_health,
+          opponent_health: battleScreen.opponent.current_health,
+          opponent_max_health: battleScreen.opponent.max_health,
+          rounds: battleScreen.rounds,
+          result: battleScreen.result,
+          reward_gold: battleScreen.reward_gold,
+          reward_exp: battleScreen.reward_exp,
+          battle_log: battleScreen.battle_log,
+        }}
+      />
     )
   }
 

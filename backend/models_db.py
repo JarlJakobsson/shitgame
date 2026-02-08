@@ -89,4 +89,5 @@ class FightHistoryRow(Base):
     opponent_level = Column(Integer, nullable=False, default=0)
     result = Column(String, nullable=False, default="defeat", index=True)
     battle_log = Column(JSON, nullable=False, default=list)
+    battle_snapshot = Column(JSON, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)

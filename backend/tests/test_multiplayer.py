@@ -87,6 +87,7 @@ class TestMultiplayer:
             notes_b = client.get("/notifications", headers=headers_b)
             history_a = client.get("/history", headers=headers_a)
             history_b = client.get("/history", headers=headers_b)
+            detail_a = client.get(f"/history/{history_a.json()['fights'][0]['id']}", headers=headers_a)
 
             updated_a = client.get("/gladiator", headers=headers_a)
             updated_b = client.get("/gladiator", headers=headers_b)
@@ -106,6 +107,8 @@ class TestMultiplayer:
         assert len(history_b.json()["fights"]) == 1
         assert history_a.json()["fights"][0]["mode"] == "random_pvp"
         assert history_b.json()["fights"][0]["mode"] == "random_pvp"
+        assert detail_a.status_code == 200
+        assert len(detail_a.json()["battle_screen"]["battle_log"]) > 0
 
         wins_losses_a = updated_a.json()["wins"] + updated_a.json()["losses"]
         wins_losses_b = updated_b.json()["wins"] + updated_b.json()["losses"]
@@ -157,6 +160,8 @@ class TestMultiplayer:
             assert history_a.json()["fights"][0]["mode"] == "challenge_pvp"
             assert history_b.json()["fights"][0]["mode"] == "challenge_pvp"
             assert len(detail_a.json()["battle_log"]) > 0
+            assert detail_a.json()["battle_screen"]["player"]["name"] in {"Alpha", "Bravo"}
+            assert detail_a.json()["battle_screen"]["opponent"]["name"] in {"Alpha", "Bravo"}
 
             updated_a = client.get("/gladiator", headers=headers_a)
             updated_b = client.get("/gladiator", headers=headers_b)

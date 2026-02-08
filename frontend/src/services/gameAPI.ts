@@ -189,6 +189,27 @@ export interface FightHistoryResponse {
 
 export interface FightHistoryDetail extends FightHistoryEntry {
   battle_log: string[];
+  battle_screen?: {
+    player: {
+      name: string;
+      race: string;
+      level: number;
+      current_health: number;
+      max_health: number;
+    };
+    opponent: {
+      name: string;
+      race: string;
+      level: number;
+      current_health: number;
+      max_health: number;
+    };
+    result: 'victory' | 'defeat';
+    reward_gold: number;
+    reward_exp: number;
+    rounds: number;
+    battle_log: string[];
+  };
 }
 
 export interface Equipment {

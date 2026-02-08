@@ -24,11 +24,29 @@ const enemyImages: Record<string, string> = {
 interface ArenaProps {
   onBattleEnd: () => void;
   playerRace: string;
+  replayData?: ArenaReplayData | null;
+}
+
+interface ArenaReplayData {
+  player_name: string;
+  player_race: string;
+  opponent_name: string;
+  opponent_race: string;
+  player_health: number;
+  player_max_health: number;
+  opponent_health: number;
+  opponent_max_health: number;
+  rounds: number;
+  result: 'victory' | 'defeat';
+  reward_gold: number;
+  reward_exp: number;
+  battle_log: string[];
 }
 
 interface CombatState {
   player_name: string;
   opponent_name: string;
+  opponent_race?: string;
   player_health: number;
   player_max_health: number;
   opponent_health: number;
@@ -37,15 +55,46 @@ interface CombatState {
   actions: string[];
 }
 
-export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
-  const [combatState, setCombatState] = useState<CombatState | null>(null);
+const buildReplayState = (replay: ArenaReplayData): CombatState => ({
+  player_name: replay.player_name,
+  opponent_name: replay.opponent_name,
+  opponent_race: replay.opponent_race,
+  player_health: replay.player_health,
+  player_max_health: replay.player_max_health,
+  opponent_health: replay.opponent_health,
+  opponent_max_health: replay.opponent_max_health,
+  round: replay.rounds,
+  actions: replay.battle_log,
+});
+
+const buildReplayResult = (replay: ArenaReplayData) => ({
+  result: replay.result,
+  gladiator: null,
+  reward_gold: replay.reward_gold,
+  reward_exp: replay.reward_exp,
+  battle_log: replay.battle_log,
+});
+
+export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps) {
+  const [combatState, setCombatState] = useState<CombatState | null>(
+    replayData ? buildReplayState(replayData) : null
+  );
   const [loading, setLoading] = useState(false);
-  const [battleEnded, setBattleEnded] = useState(false);
-  const [battleResult, setBattleResult] = useState<{ result: string; gladiator: any; reward_gold: number; reward_exp: number; battle_log: string[] } | null>(null);
-  const [enemyMenuOpen, setEnemyMenuOpen] = useState(true);
+  const [battleEnded, setBattleEnded] = useState(Boolean(replayData));
+  const [battleResult, setBattleResult] = useState<{ result: string; gladiator: any; reward_gold: number; reward_exp: number; battle_log: string[] } | null>(
+    replayData ? buildReplayResult(replayData) : null
+  );
+  const [enemyMenuOpen, setEnemyMenuOpen] = useState(!replayData);
   const [enemies, setEnemies] = useState<Record<string, any>>({});
 
   useEffect(() => {
+    if (replayData) {
+      setCombatState(buildReplayState(replayData));
+      setBattleResult(buildReplayResult(replayData));
+      setBattleEnded(true);
+      setEnemyMenuOpen(false);
+      return;
+    }
     // Fetch enemy list on mount
     const fetchEnemies = async () => {
       try {
@@ -56,7 +105,7 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
       }
     };
     fetchEnemies();
-  }, []);
+  }, [replayData]);
 
   const handleEnemySelect = async (enemyName: string) => {
     setEnemyMenuOpen(false);
@@ -66,6 +115,7 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
       const initialState = {
         player_name: result.player.name,
         opponent_name: result.opponent.name,
+        opponent_race: result.opponent.race,
         player_health: result.player.current_health,
         player_max_health: result.player.max_health,
         opponent_health: result.opponent.current_health,
@@ -117,7 +167,7 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
   }
 
   // Show enemy selection menu if not in combat
-  if (enemyMenuOpen) {
+  if (enemyMenuOpen && !replayData) {
     return (
       <div className={styles.container}>
         <div className={styles.menu}>
@@ -267,9 +317,9 @@ export function Arena({ onBattleEnd, playerRace }: ArenaProps) {
           </div>
 
           <div className={styles.fighter}>
-            {enemyImages[combatState.opponent_name.toLowerCase()] && (
+            {enemyImages[(combatState.opponent_race || combatState.opponent_name).toLowerCase()] && (
               <img
-                src={enemyImages[combatState.opponent_name.toLowerCase()]}
+                src={enemyImages[(combatState.opponent_race || combatState.opponent_name).toLowerCase()]}
                 alt={combatState.opponent_name}
                 className={styles.fighterImage}
               />
