@@ -91,13 +91,13 @@ def get_all_equipment(db: Session) -> List[Equipment]:
     ) for row in equipment_rows]
 
 
-def get_shop_inventory(db: Session, gladiator_level: int) -> List[Equipment]:
+def get_shop_inventory(db: Session, gladiator_level: int, gladiator_id: int) -> List[Equipment]:
     """Get equipment available for purchase based on gladiator level."""
     all_equipment = db.query(EquipmentRow).filter(
         EquipmentRow.level_requirement <= gladiator_level
     ).all()
 
-    gladiator = db.query(GladiatorRow).first()
+    gladiator = db.query(GladiatorRow).filter(GladiatorRow.id == gladiator_id).first()
     if not gladiator:
         equipment_rows = all_equipment
     else:
