@@ -11,3 +11,4 @@ env/
 .vscode
 *.egg-info/
 progress.md
+frontend/.env.production
