@@ -77,6 +77,8 @@ app.add_middleware(StripApiPrefixMiddleware)
 
 DEFAULT_PLAYER_TOKEN = "single-player"
 PLAYER_ID_HEADER = "X-Player-ID"
+RECOVERY_INTERVAL_SECONDS = 60
+RECOVERY_HEAL_PERCENT = 0.33
 
 
 def _init_db():
@@ -87,6 +89,7 @@ def _init_db():
             _ensure_equipped_items_column()
             _ensure_player_token_column()
             _ensure_fight_history_columns()
+            _ensure_recovery_columns()
             with get_db() as db:
                 initialize_equipment(db)
             return
@@ -136,11 +139,69 @@ def _ensure_fight_history_columns():
             conn.execute(text("ALTER TABLE fight_history ADD COLUMN battle_snapshot JSON"))
 
 
+def _ensure_recovery_columns():
+    inspector = inspect(engine)
+    if "gladiators" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("gladiators")}
+    if "last_recovery_tick" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE gladiators ADD COLUMN last_recovery_tick INTEGER"))
+    current_tick = int(time.time()) // RECOVERY_INTERVAL_SECONDS
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE gladiators "
+                "SET last_recovery_tick = :current_tick "
+                "WHERE last_recovery_tick IS NULL"
+            ),
+            {"current_tick": current_tick},
+        )
+
+
 def _resolve_player_token(request: Request | None) -> str:
     if request is None:
         return DEFAULT_PLAYER_TOKEN
     header_value = request.headers.get(PLAYER_ID_HEADER, "").strip()
     return header_value or DEFAULT_PLAYER_TOKEN
+
+
+def _get_current_recovery_tick(now_epoch_seconds: int | None = None) -> int:
+    if now_epoch_seconds is None:
+        now_epoch_seconds = int(time.time())
+    return now_epoch_seconds // RECOVERY_INTERVAL_SECONDS
+
+
+def _seconds_until_next_recovery(now_epoch_seconds: int | None = None) -> int:
+    if now_epoch_seconds is None:
+        now_epoch_seconds = int(time.time())
+    elapsed = now_epoch_seconds % RECOVERY_INTERVAL_SECONDS
+    if elapsed == 0:
+        return RECOVERY_INTERVAL_SECONDS
+    return RECOVERY_INTERVAL_SECONDS - elapsed
+
+
+def _recovery_heal_amount(max_health: int) -> int:
+    return max(1, int(floor(max_health * RECOVERY_HEAL_PERCENT)))
+
+
+def _apply_recovery_to_row(row: GladiatorRow, target_tick: int) -> bool:
+    if row.last_recovery_tick is None:
+        row.last_recovery_tick = target_tick
+        return True
+
+    if row.last_recovery_tick >= target_tick:
+        return False
+
+    ticks_elapsed = target_tick - row.last_recovery_tick
+    if row.current_health < row.max_health:
+        heal_per_tick = _recovery_heal_amount(row.max_health)
+        row.current_health = min(
+            row.max_health,
+            row.current_health + (heal_per_tick * ticks_elapsed),
+        )
+    row.last_recovery_tick = target_tick
+    return True
 
 
 def _get_gladiator_row(db, player_token: str) -> GladiatorRow | None:
@@ -237,6 +298,10 @@ def _load_gladiator(db, player_token: str = DEFAULT_PLAYER_TOKEN, apply_equipmen
     row = _get_gladiator_row(db, player_token)
     if not row:
         return None
+    recovery_tick = _get_current_recovery_tick()
+    if _apply_recovery_to_row(row, recovery_tick):
+        db.commit()
+        db.refresh(row)
     return _gladiator_from_row(db, row, apply_equipment_bonuses)
 
 
@@ -264,13 +329,17 @@ def _save_gladiator(
     player_token: str = DEFAULT_PLAYER_TOKEN,
     row: GladiatorRow | None = None,
 ):
+    current_tick = _get_current_recovery_tick()
     if row is None:
         row = _get_gladiator_row(db, player_token)
     if not row:
         row = GladiatorRow(player_token=player_token)
+        row.last_recovery_tick = current_tick
         db.add(row)
     else:
         row.player_token = player_token
+        if row.last_recovery_tick is None:
+            row.last_recovery_tick = current_tick
 
     row.name = gladiator.name
     row.race = gladiator.race
@@ -376,11 +445,16 @@ def _record_fight_history(
 
 
 def _run_pvp_battle(db, challenger_row: GladiatorRow, opponent_row: GladiatorRow):
+    recovery_tick = _get_current_recovery_tick()
+    challenger_recovered = _apply_recovery_to_row(challenger_row, recovery_tick)
+    opponent_recovered = _apply_recovery_to_row(opponent_row, recovery_tick)
+    if challenger_recovered or opponent_recovered:
+        db.commit()
+        db.refresh(challenger_row)
+        db.refresh(opponent_row)
+
     challenger = _gladiator_from_row(db, challenger_row, apply_equipment_bonuses=True)
     opponent = _gladiator_from_row(db, opponent_row, apply_equipment_bonuses=True)
-
-    challenger.current_health = challenger.max_health
-    opponent.current_health = opponent.max_health
 
     combat = Combat(challenger, opponent)
     winner = _simulate_full_combat(combat)
@@ -563,10 +637,12 @@ def allocate_stat_points(allocation: StatAllocation, request: Request):
 
     health_points = points["health"]
     if health_points > 0:
-        old_max_health = current_gladiator.max_health
         current_gladiator.vitality += health_points
         current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
-        current_gladiator.current_health += current_gladiator.max_health - old_max_health
+        current_gladiator.current_health = min(
+            current_gladiator.current_health,
+            current_gladiator.max_health,
+        )
 
     current_gladiator.strength += points["strength"]
     current_gladiator.dodge += points["dodge"]
@@ -600,6 +676,24 @@ def get_gladiator(request: Request):
         return GladiatorResponse(**gladiator_dict)
 
 
+@app.get("/recovery/status")
+def get_recovery_status(request: Request):
+    player_token = _resolve_player_token(request)
+    now_epoch_seconds = int(time.time())
+    current_tick = _get_current_recovery_tick(now_epoch_seconds)
+    with get_db() as db:
+        row = _get_gladiator_row(db, player_token)
+        if row is not None and _apply_recovery_to_row(row, current_tick):
+            db.commit()
+    return {
+        "name": "recovery",
+        "interval_seconds": RECOVERY_INTERVAL_SECONDS,
+        "heal_percent": int(RECOVERY_HEAL_PERCENT * 100),
+        "seconds_until_next_tick": _seconds_until_next_recovery(now_epoch_seconds),
+        "server_epoch_seconds": now_epoch_seconds,
+    }
+
+
 @app.post("/gladiator/train")
 def train_gladiator(request: Request):
     """Train the gladiator."""
@@ -617,7 +711,10 @@ def train_gladiator(request: Request):
         current_gladiator.weaponskill += 1
         current_gladiator.vitality += 3
         current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
-        current_gladiator.current_health = current_gladiator.max_health
+        current_gladiator.current_health = min(
+            current_gladiator.current_health,
+            current_gladiator.max_health,
+        )
         apply_experience(current_gladiator, 10)
 
         _save_gladiator(db, current_gladiator, player_token)
@@ -659,11 +756,6 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
             enemy_name = None
 
     print(f"Received enemy_name: {enemy_name}")
-
-    # Reset player health
-    current_gladiator.current_health = current_gladiator.max_health
-    with get_db() as db:
-        _save_gladiator(db, current_gladiator, player_token)
 
     # If enemy_name is provided and valid, use it
     opponent = None

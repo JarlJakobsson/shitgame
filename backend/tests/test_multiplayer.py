@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 
 import main
 from main import app
-from models_db import Base
+from models_db import Base, GladiatorRow
 
 
 @contextmanager
@@ -169,3 +169,32 @@ class TestMultiplayer:
             wins_losses_b = updated_b.json()["wins"] + updated_b.json()["losses"]
             assert wins_losses_a == 1
             assert wins_losses_b == 1
+
+    def test_recovery_tick_heals_and_combat_start_keeps_current_hp(self):
+        session = _make_session()
+        client = TestClient(app)
+        headers = {"X-Player-ID": "player-a"}
+        base_time = 1_700_000_000
+
+        with patch("main.get_db", lambda: _db_context(session)), patch("main.time.time", return_value=base_time):
+            created = client.post("/gladiator", headers=headers, json=_create_payload("Alpha"))
+            assert created.status_code == 200
+            max_health = created.json()["max_health"]
+
+            row = session.query(GladiatorRow).filter(GladiatorRow.player_token == "player-a").first()
+            row.current_health = 5
+            row.last_recovery_tick = main._get_current_recovery_tick(base_time)
+            session.commit()
+
+            started = client.post("/combat/start", headers=headers, json={"enemy_name": "Slime"})
+            assert started.status_code == 200
+            assert started.json()["player"]["current_health"] == 5
+
+        with patch("main.get_db", lambda: _db_context(session)), patch("main.time.time", return_value=base_time + 61):
+            recovery = client.get("/recovery/status", headers=headers)
+            assert recovery.status_code == 200
+            updated = client.get("/gladiator", headers=headers)
+            assert updated.status_code == 200
+
+        heal_amount = max(1, int(max_health * main.RECOVERY_HEAL_PERCENT))
+        assert updated.json()["current_health"] == min(max_health, 5 + heal_amount)

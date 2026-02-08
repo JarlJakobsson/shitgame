@@ -148,6 +148,12 @@
   font-size: 0.9rem;
 }
 
+.recoveryNote {
+  color: #7ef2ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .attributes {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

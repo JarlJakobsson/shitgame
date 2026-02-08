@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GladiatorWithEquipment } from '../services/gameAPI'
+import { GladiatorWithEquipment, RecoveryStatus } from '../services/gameAPI'
 import { EquipmentManager } from './EquipmentManager'
 import styles from './GameDashboard.module.css'
 import humanImg from '../assets/human.png'
@@ -23,6 +23,7 @@ interface GameDashboardProps {
   onLogout: () => void
   loading: boolean
   queuedForRandomBattle: boolean
+  recoveryStatus: RecoveryStatus | null
   onGladiatorUpdate: (gladiator: GladiatorWithEquipment) => void
 }
 
@@ -38,9 +39,14 @@ export function GameDashboard({
   onLogout,
   loading,
   queuedForRandomBattle,
+  recoveryStatus,
   onGladiatorUpdate,
 }: GameDashboardProps) {
   const healthPercentage = (gladiator.current_health / gladiator.max_health) * 100
+  const recoverySeconds = recoveryStatus?.seconds_until_next_tick ?? 0
+  const recoveryMinutesPart = Math.floor(recoverySeconds / 60)
+  const recoverySecondsPart = recoverySeconds % 60
+  const recoveryCountdown = `${String(recoveryMinutesPart).padStart(2, '0')}:${String(recoverySecondsPart).padStart(2, '0')}`
   const raceKey = gladiator.race.toLowerCase()
   const portraitMap: Record<string, string> = {
     human: humanImg,
@@ -117,6 +123,9 @@ export function GameDashboard({
             </div>
             <div className={styles.healthNote}>
               Current HP: {gladiator.current_health}
+            </div>
+            <div className={styles.recoveryNote}>
+              Recovery (+33% HP): {recoveryCountdown}
             </div>
           </div>
         </div>

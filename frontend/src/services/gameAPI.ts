@@ -139,6 +139,14 @@ export interface NotificationsResponse {
   queued_for_random_battle: boolean;
 }
 
+export interface RecoveryStatus {
+  name: string;
+  interval_seconds: number;
+  heal_percent: number;
+  seconds_until_next_tick: number;
+  server_epoch_seconds: number;
+}
+
 export interface RandomBattleJoinResponse {
   status: 'queued' | 'matched';
   message: string;
@@ -301,6 +309,11 @@ export const gameAPI = {
 
   getNotifications: async (): Promise<NotificationsResponse> => {
     const response = await api.get('/notifications');
+    return response.data;
+  },
+
+  getRecoveryStatus: async (): Promise<RecoveryStatus> => {
+    const response = await api.get('/recovery/status');
     return response.data;
   },
 

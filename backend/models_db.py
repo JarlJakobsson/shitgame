@@ -57,6 +57,7 @@ class GladiatorRow(Base):
     vitality = Column(Integer, nullable=False, default=0)
     max_health = Column(Integer, nullable=False, default=1)
     current_health = Column(Integer, nullable=False, default=1)
+    last_recovery_tick = Column(Integer, nullable=False, default=0)
     strength = Column(Integer, nullable=False, default=0)
     dodge = Column(Integer, nullable=False, default=0)
     initiative = Column(Integer, nullable=False, default=0)

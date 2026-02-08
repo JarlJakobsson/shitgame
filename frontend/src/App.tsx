@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import gameAPI, { GladiatorWithEquipment, Race, StatPlan } from './services/gameAPI'
+import gameAPI, { GladiatorWithEquipment, Race, RecoveryStatus, StatPlan } from './services/gameAPI'
 import { MainMenu } from './components/MainMenu'
 import { RaceSelection } from './components/RaceSelection'
 import { RaceDetails } from './components/RaceDetails'
@@ -43,6 +43,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [queuedForRandomBattle, setQueuedForRandomBattle] = useState(false)
   const [notices, setNotices] = useState<string[]>([])
+  const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null)
 
   useEffect(() => {
     void loadRaces()
@@ -51,6 +52,7 @@ export default function App() {
   useEffect(() => {
     if (!gladiator) {
       setQueuedForRandomBattle(false)
+      setRecoveryStatus(null)
       return
     }
 
@@ -80,6 +82,49 @@ export default function App() {
     const intervalId = window.setInterval(() => {
       void pollNotifications()
     }, 2500)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+    }
+  }, [gladiator?.name])
+
+  useEffect(() => {
+    if (!gladiator) {
+      setRecoveryStatus(null)
+      return
+    }
+
+    let active = true
+    let previousSeconds: number | null = null
+
+    const pollRecovery = async () => {
+      try {
+        const status = await gameAPI.getRecoveryStatus()
+        if (!active) {
+          return
+        }
+        setRecoveryStatus(status)
+        if (
+          previousSeconds !== null &&
+          status.seconds_until_next_tick > previousSeconds
+        ) {
+          const refreshed = await gameAPI.getGladiatorWithEquipment()
+          if (!active) {
+            return
+          }
+          setGladiator(refreshed)
+        }
+        previousSeconds = status.seconds_until_next_tick
+      } catch {
+        // Ignore transient poll failures.
+      }
+    }
+
+    void pollRecovery()
+    const intervalId = window.setInterval(() => {
+      void pollRecovery()
+    }, 1000)
 
     return () => {
       active = false
@@ -286,6 +331,7 @@ export default function App() {
           onLogout={handleLogout}
           loading={loading}
           queuedForRandomBattle={queuedForRandomBattle}
+          recoveryStatus={recoveryStatus}
           onGladiatorUpdate={setGladiator}
         />
       )
