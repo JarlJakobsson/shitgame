@@ -19,7 +19,7 @@ interface GameDashboardProps {
   onOpenGladiators: () => void
   onOpenChallenges: () => void
   onOpenHistory: () => void
-  onAllocateStats: () => void
+  onOpenAttributes: () => void
   onLogout: () => void
   loading: boolean
   queuedForRandomBattle: boolean
@@ -35,7 +35,7 @@ export function GameDashboard({
   onOpenGladiators,
   onOpenChallenges,
   onOpenHistory,
-  onAllocateStats,
+  onOpenAttributes,
   onLogout,
   loading,
   queuedForRandomBattle,
@@ -180,15 +180,13 @@ export function GameDashboard({
           <div className={styles.actionsPanel}>
             <div className={styles.actionsHeader}>Actions</div>
             <div className={styles.actions}>
-              {gladiator.stat_points > 0 && (
-                <button
-                  className={styles.primaryButton}
-                  onClick={onAllocateStats}
-                  disabled={loading}
-                >
-                  New Stats ({gladiator.stat_points})
-                </button>
-              )}
+              <button
+                className={styles.primaryButton}
+                onClick={onOpenAttributes}
+                disabled={loading}
+              >
+                {gladiator.stat_points > 0 ? `Attributes (${gladiator.stat_points})` : 'Attributes'}
+              </button>
               <button
                 className={styles.button}
                 onClick={onTrain}
@@ -238,36 +236,6 @@ export function GameDashboard({
               >
                 Equipment
               </button>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.attributesSection}>
-          <div className={styles.sectionTitle}>Attributes</div>
-          <div className={styles.attributes}>
-            <div className={styles.attribute}>
-              <span>{'\u2764\uFE0F'}</span>
-              <span>Vitality: {gladiator.vitality}</span>
-            </div>
-            <div className={styles.attribute}>
-              <span>{'\uD83D\uDDE1\uFE0F'}</span>
-              <span>Weaponskill: {gladiator.weaponskill}</span>
-            </div>
-            <div className={styles.attribute}>
-              <span>{'\uD83D\uDEA6'}</span>
-              <span>Initiative: {gladiator.initiative}</span>
-            </div>
-            <div className={styles.attribute}>
-              <span>{'\uD83D\uDCAA'}</span>
-              <span>Strength: {gladiator.strength}</span>
-            </div>
-            <div className={styles.attribute}>
-              <span>{'\uD83C\uDF00'}</span>
-              <span>Dodge: {gladiator.dodge}</span>
-            </div>
-            <div className={styles.attribute}>
-              <span>{'\uD83D\uDCA8'}</span>
-              <span>Stamina: {gladiator.stamina}</span>
             </div>
           </div>
         </div>

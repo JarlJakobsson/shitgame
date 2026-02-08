@@ -19,7 +19,7 @@ type View =
   | 'gladiatorCreation'
   | 'dashboard'
   | 'arena'
-  | 'levelUp'
+  | 'attributes'
   | 'gladiators'
   | 'challenges'
   | 'history'
@@ -242,11 +242,12 @@ export default function App() {
     handleLogout()
   }
 
-  const handleAllocateStats = () => {
-    if (gladiator && gladiator.stat_points > 0) {
-      setError('')
-      setView('levelUp')
+  const handleOpenAttributes = () => {
+    if (!gladiator) {
+      return
     }
+    setError('')
+    setView('attributes')
   }
 
   const handleConfirmAllocateStats = async (stats: StatPlan) => {
@@ -327,7 +328,7 @@ export default function App() {
           onOpenGladiators={handleOpenGladiators}
           onOpenChallenges={handleOpenChallenges}
           onOpenHistory={handleOpenHistory}
-          onAllocateStats={handleAllocateStats}
+          onOpenAttributes={handleOpenAttributes}
           onLogout={handleLogout}
           loading={loading}
           queuedForRandomBattle={queuedForRandomBattle}
@@ -356,10 +357,12 @@ export default function App() {
         />
       )
     }
-  } else if (view === 'levelUp') {
+  } else if (view === 'attributes') {
     if (gladiator) {
       content = (
         <LevelUpPlanner
+          gladiator={gladiator}
+          race={races[gladiator.race] || null}
           pointsAvailable={gladiator.stat_points}
           onConfirm={handleConfirmAllocateStats}
           onCancel={() => setView('dashboard')}

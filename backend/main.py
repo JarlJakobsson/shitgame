@@ -584,6 +584,7 @@ def create_gladiator(gladiator_data: GladiatorCreate, request: Request):
     current_gladiator.initiative = stats_with_bonus["initiative"]
     current_gladiator.weaponskill = stats_with_bonus["weaponskill"]
     current_gladiator.stamina = stats_with_bonus["stamina"]
+    current_gladiator.stat_points = max(0, 150 - total_points)
     with get_db() as db:
         existing = _get_gladiator_row(db, player_token)
         if existing:

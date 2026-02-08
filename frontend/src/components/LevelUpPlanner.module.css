@@ -39,6 +39,56 @@
   gap: 1rem;
 }
 
+.currentStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.currentStatRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e7e3c8;
+}
+
+.currentStatRow span {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.bonusTag {
+  font-style: normal;
+  color: #7ef2ff;
+  font-weight: 700;
+  margin-left: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.currentStatRow strong {
+  color: #f7f1c6;
+}
+
+.allocateSection {
+  margin-top: 0.25rem;
+}
+
+.allocateSection h3 {
+  margin: 0 0 0.75rem;
+  color: #ffd700;
+}
+
+.allocateHint {
+  margin: 0 0 0.9rem;
+  color: #d7d7d7;
+  font-size: 0.95rem;
+}
+
 .plannerRow {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -119,6 +169,10 @@
 }
 
 @media (max-width: 700px) {
+  .currentStats {
+    grid-template-columns: 1fr;
+  }
+
   .plannerRow {
     grid-template-columns: 1fr;
   }

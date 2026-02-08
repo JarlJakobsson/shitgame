@@ -70,6 +70,30 @@ class TestMultiplayer:
         assert get_a.json()["name"] == "Alpha"
         assert get_b.json()["name"] == "Bravo"
 
+    def test_unspent_creation_points_are_kept_as_stat_points(self):
+        session = _make_session()
+        client = TestClient(app)
+        headers = {"X-Player-ID": "player-a"}
+        payload = {
+            "name": "Alpha",
+            "race": "Human",
+            "health": 10,
+            "strength": 10,
+            "dodge": 10,
+            "initiative": 5,
+            "weaponskill": 5,
+            "stamina": 10,
+        }  # 50 allocated, 100 should remain
+
+        with patch("main.get_db", lambda: _db_context(session)):
+            created = client.post("/gladiator", headers=headers, json=payload)
+            fetched = client.get("/gladiator", headers=headers)
+
+        assert created.status_code == 200
+        assert fetched.status_code == 200
+        assert created.json()["stat_points"] == 100
+        assert fetched.json()["stat_points"] == 100
+
     def test_random_battle_matches_two_queued_players_and_notifies_both(self):
         session = _make_session()
         client = TestClient(app)
