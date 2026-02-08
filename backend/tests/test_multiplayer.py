@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import main
+import game_runtime as runtime
 from main import app
 from models_db import Base, GladiatorRow
 
@@ -46,10 +46,7 @@ def _create_payload(name: str):
 
 class TestMultiplayer:
     def setup_method(self):
-        main.random_battle_queue.clear()
-        main.random_battle_notifications.clear()
-        main.current_combats.clear()
-        main.current_combat = None
+        runtime.reset_runtime_state()
 
     def test_two_players_can_create_and_fetch_separate_gladiators(self):
         session = _make_session()
@@ -57,7 +54,7 @@ class TestMultiplayer:
         headers_a = {"X-Player-ID": "player-a"}
         headers_b = {"X-Player-ID": "player-b"}
 
-        with patch("main.get_db", lambda: _db_context(session)):
+        with patch("game_runtime.get_db", lambda: _db_context(session)):
             response_a = client.post("/gladiator", headers=headers_a, json=_create_payload("Alpha"))
             response_b = client.post("/gladiator", headers=headers_b, json=_create_payload("Bravo"))
             get_a = client.get("/gladiator", headers=headers_a)
@@ -85,7 +82,7 @@ class TestMultiplayer:
             "stamina": 10,
         }  # 50 allocated, 100 should remain
 
-        with patch("main.get_db", lambda: _db_context(session)):
+        with patch("game_runtime.get_db", lambda: _db_context(session)):
             created = client.post("/gladiator", headers=headers, json=payload)
             fetched = client.get("/gladiator", headers=headers)
 
@@ -100,7 +97,7 @@ class TestMultiplayer:
         headers_a = {"X-Player-ID": "player-a"}
         headers_b = {"X-Player-ID": "player-b"}
 
-        with patch("main.get_db", lambda: _db_context(session)):
+        with patch("game_runtime.get_db", lambda: _db_context(session)):
             client.post("/gladiator", headers=headers_a, json=_create_payload("Alpha"))
             client.post("/gladiator", headers=headers_b, json=_create_payload("Bravo"))
 
@@ -145,7 +142,7 @@ class TestMultiplayer:
         headers_a = {"X-Player-ID": "player-a"}
         headers_b = {"X-Player-ID": "player-b"}
 
-        with patch("main.get_db", lambda: _db_context(session)):
+        with patch("game_runtime.get_db", lambda: _db_context(session)):
             client.post("/gladiator", headers=headers_a, json=_create_payload("Alpha"))
             client.post("/gladiator", headers=headers_b, json=_create_payload("Bravo"))
 
@@ -200,27 +197,27 @@ class TestMultiplayer:
         headers = {"X-Player-ID": "player-a"}
         base_time = 1_700_000_000
 
-        with patch("main.get_db", lambda: _db_context(session)), patch("main.time.time", return_value=base_time):
+        with patch("game_runtime.get_db", lambda: _db_context(session)), patch("game_runtime.time.time", return_value=base_time), patch("routers.gladiator.time.time", return_value=base_time):
             created = client.post("/gladiator", headers=headers, json=_create_payload("Alpha"))
             assert created.status_code == 200
             max_health = created.json()["max_health"]
 
             row = session.query(GladiatorRow).filter(GladiatorRow.player_token == "player-a").first()
             row.current_health = 5
-            row.last_recovery_tick = main._get_current_recovery_tick(base_time)
+            row.last_recovery_tick = runtime._get_current_recovery_tick(base_time)
             session.commit()
 
             started = client.post("/combat/start", headers=headers, json={"enemy_name": "Slime"})
             assert started.status_code == 200
             assert started.json()["player"]["current_health"] == 5
 
-        with patch("main.get_db", lambda: _db_context(session)), patch("main.time.time", return_value=base_time + 61):
+        with patch("game_runtime.get_db", lambda: _db_context(session)), patch("game_runtime.time.time", return_value=base_time + 61), patch("routers.gladiator.time.time", return_value=base_time + 61):
             recovery = client.get("/recovery/status", headers=headers)
             assert recovery.status_code == 200
             updated = client.get("/gladiator", headers=headers)
             assert updated.status_code == 200
 
-        heal_amount = max(1, int(max_health * main.RECOVERY_HEAL_PERCENT))
+        heal_amount = max(1, int(max_health * runtime.RECOVERY_HEAL_PERCENT))
         assert updated.json()["current_health"] == min(max_health, 5 + heal_amount)
 
     def test_exhausted_player_gets_defeat_and_no_rewards(self):
@@ -238,7 +235,7 @@ class TestMultiplayer:
             "stamina": 1,
         }
 
-        with patch("main.get_db", lambda: _db_context(session)):
+        with patch("game_runtime.get_db", lambda: _db_context(session)):
             created = client.post("/gladiator", headers=headers, json=payload)
             assert created.status_code == 200
             start = client.post("/combat/start", headers=headers, json={"enemy_name": "Slime"})

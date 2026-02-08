@@ -39,7 +39,7 @@ class TestGladiatorAPI:
             "stamina": 20,
         }
 
-        with patch("main.get_db", _mock_get_db(mock_db)), patch("main._save_gladiator"):
+        with patch("game_runtime.get_db", _mock_get_db(mock_db)), patch("game_runtime._save_gladiator"):
             response = client.post("/gladiator", json=payload)
 
         assert response.status_code == 200
@@ -66,7 +66,7 @@ class TestGladiatorAPI:
 
     def test_get_gladiator_not_found(self):
         mock_db = Mock()
-        with patch("main.get_db", _mock_get_db(mock_db)), patch("main._load_gladiator", return_value=None):
+        with patch("game_runtime.get_db", _mock_get_db(mock_db)), patch("game_runtime._load_gladiator", return_value=None):
             response = client.get("/gladiator")
 
         assert response.status_code == 404
@@ -79,10 +79,10 @@ class TestGladiatorAPI:
         gladiator.max_health = gladiator.current_health = 10
 
         with (
-            patch("main.get_db", _mock_get_db(mock_db)),
-            patch("main._load_gladiator", return_value=gladiator),
-            patch("main.get_equipped_items", return_value={}),
-            patch("main.get_gladiator_equipment", return_value=[]),
+            patch("game_runtime.get_db", _mock_get_db(mock_db)),
+            patch("game_runtime._load_gladiator", return_value=gladiator),
+            patch("routers.gladiator.get_equipped_items", return_value={}),
+            patch("routers.gladiator.get_gladiator_equipment", return_value=[]),
         ):
             response = client.get("/gladiator")
 
@@ -105,7 +105,7 @@ class TestGladiatorAPI:
             "stamina": 0,
         }
 
-        with patch("main.get_db", _mock_get_db(mock_db)), patch("main._load_gladiator", return_value=gladiator):
+        with patch("game_runtime.get_db", _mock_get_db(mock_db)), patch("game_runtime._load_gladiator", return_value=gladiator):
             response = client.post("/gladiator/allocate", json=allocation)
 
         assert response.status_code == 400
@@ -134,7 +134,7 @@ class TestEquipmentAPI:
             )
         ]
 
-        with patch("main.get_db", _mock_get_db(mock_db)), patch("main.get_all_equipment", return_value=equipment):
+        with patch("game_runtime.get_db", _mock_get_db(mock_db)), patch("routers.equipment.get_all_equipment", return_value=equipment):
             response = client.get("/equipment")
 
         assert response.status_code == 200
@@ -146,7 +146,7 @@ class TestEquipmentAPI:
         mock_db = Mock()
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("main.get_db", _mock_get_db(mock_db)):
+        with patch("game_runtime.get_db", _mock_get_db(mock_db)):
             response = client.post("/equipment/equip", json={"equipment_id": 1, "slot": "head"})
 
         assert response.status_code == 404
@@ -155,14 +155,14 @@ class TestEquipmentAPI:
 
 class TestCombatAPI:
     def test_execute_combat_round_no_active_combat(self):
-        with patch("main.current_combat", None):
+        with patch("game_runtime.current_combat", None):
             response = client.post("/combat/round")
 
         assert response.status_code == 400
         assert "No active combat" in response.json()["detail"]
 
     def test_finish_combat_no_active_combat(self):
-        with patch("main.current_combat", None):
+        with patch("game_runtime.current_combat", None):
             response = client.post("/combat/finish")
 
         assert response.status_code == 400

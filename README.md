@@ -25,6 +25,13 @@ Web-based gladiator game with a React frontend and FastAPI backend.
 .
 |-- backend/
 |   |-- main.py
+|   |-- game_runtime.py
+|   |-- routers/
+|   |   |-- system.py
+|   |   |-- gladiator.py
+|   |   |-- combat.py
+|   |   |-- pvp.py
+|   |   `-- equipment.py
 |   |-- combat.py
 |   |-- gladiator.py
 |   |-- enemies.py
