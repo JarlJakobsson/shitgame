@@ -151,6 +151,46 @@ export interface RandomBattleJoinResponse {
   };
 }
 
+export interface PvPGladiatorSummary {
+  player_token: string;
+  name: string;
+  race: string;
+  level: number;
+  wins: number;
+  losses: number;
+}
+
+export interface IncomingChallenge {
+  id: number;
+  challenger_player_token: string;
+  challenger_name: string;
+  challenger_race: string;
+  challenger_level: number;
+  created_at?: string | null;
+}
+
+export interface IncomingChallengesResponse {
+  challenges: IncomingChallenge[];
+}
+
+export interface FightHistoryEntry {
+  id: number;
+  mode: string;
+  opponent_name: string;
+  opponent_race: string;
+  opponent_level: number;
+  result: 'victory' | 'defeat';
+  created_at?: string | null;
+}
+
+export interface FightHistoryResponse {
+  fights: FightHistoryEntry[];
+}
+
+export interface FightHistoryDetail extends FightHistoryEntry {
+  battle_log: string[];
+}
+
 export interface Equipment {
   id: number;
   name: string;
@@ -240,6 +280,40 @@ export const gameAPI = {
 
   getNotifications: async (): Promise<NotificationsResponse> => {
     const response = await api.get('/notifications');
+    return response.data;
+  },
+
+  getPvpGladiators: async (): Promise<PvPGladiatorSummary[]> => {
+    const response = await api.get('/pvp/gladiators');
+    return response.data;
+  },
+
+  sendChallenge: async (targetPlayerToken: string): Promise<{ message: string }> => {
+    const response = await api.post('/pvp/challenges', {
+      target_player_token: targetPlayerToken,
+    });
+    return response.data;
+  },
+
+  getIncomingChallenges: async (): Promise<IncomingChallengesResponse> => {
+    const response = await api.get('/pvp/challenges');
+    return response.data;
+  },
+
+  acceptChallenge: async (
+    challengeId: number,
+  ): Promise<{ message: string; battle_result?: { winner_name: string; loser_name: string; rounds: number } }> => {
+    const response = await api.post(`/pvp/challenges/${challengeId}/accept`);
+    return response.data;
+  },
+
+  getFightHistory: async (): Promise<FightHistoryResponse> => {
+    const response = await api.get('/history');
+    return response.data;
+  },
+
+  getFightHistoryDetail: async (fightId: number): Promise<FightHistoryDetail> => {
+    const response = await api.get(`/history/${fightId}`);
     return response.data;
   },
 

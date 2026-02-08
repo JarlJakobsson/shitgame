@@ -8,6 +8,9 @@ import { GladiatorCreation } from './components/GladiatorCreation'
 import { GameDashboard } from './components/GameDashboard'
 import { Arena } from './components/Arena'
 import { LevelUpPlanner } from './components/LevelUpPlanner'
+import { GladiatorDirectory } from './components/GladiatorDirectory'
+import { ChallengeInbox } from './components/ChallengeInbox'
+import { BattleHistory } from './components/BattleHistory'
 
 type View =
   | 'menu'
@@ -17,6 +20,9 @@ type View =
   | 'dashboard'
   | 'arena'
   | 'levelUp'
+  | 'gladiators'
+  | 'challenges'
+  | 'history'
 
 const DEFAULT_STATS: StatPlan = {
   strength: 0,
@@ -148,6 +154,21 @@ export default function App() {
     setView('arena')
   }
 
+  const handleOpenGladiators = () => {
+    setError('')
+    setView('gladiators')
+  }
+
+  const handleOpenChallenges = () => {
+    setError('')
+    setView('challenges')
+  }
+
+  const handleOpenHistory = () => {
+    setError('')
+    setView('history')
+  }
+
   const handleBattleEnd = async () => {
     setLoading(true)
     setError('')
@@ -214,6 +235,10 @@ export default function App() {
     }
   }
 
+  const handleNotice = (message: string) => {
+    setNotices((prev) => [message, ...prev].slice(0, 8))
+  }
+
   let content = (
     <MainMenu onCreateGladiator={handleCreateGladiator} onQuit={handleQuit} />
   )
@@ -254,6 +279,9 @@ export default function App() {
           onTrain={handleTrain}
           onFight={handleFight}
           onRandomBattle={handleRandomBattle}
+          onOpenGladiators={handleOpenGladiators}
+          onOpenChallenges={handleOpenChallenges}
+          onOpenHistory={handleOpenHistory}
           onAllocateStats={handleAllocateStats}
           onLogout={handleLogout}
           loading={loading}
@@ -289,6 +317,53 @@ export default function App() {
           pointsAvailable={gladiator.stat_points}
           onConfirm={handleConfirmAllocateStats}
           onCancel={() => setView('dashboard')}
+        />
+      )
+    } else {
+      content = (
+        <MainMenu
+          onCreateGladiator={handleCreateGladiator}
+          onQuit={handleQuit}
+        />
+      )
+    }
+  } else if (view === 'gladiators') {
+    if (gladiator) {
+      content = (
+        <GladiatorDirectory
+          onBack={() => setView('dashboard')}
+          onNotice={handleNotice}
+        />
+      )
+    } else {
+      content = (
+        <MainMenu
+          onCreateGladiator={handleCreateGladiator}
+          onQuit={handleQuit}
+        />
+      )
+    }
+  } else if (view === 'challenges') {
+    if (gladiator) {
+      content = (
+        <ChallengeInbox
+          onBack={() => setView('dashboard')}
+          onNotice={handleNotice}
+        />
+      )
+    } else {
+      content = (
+        <MainMenu
+          onCreateGladiator={handleCreateGladiator}
+          onQuit={handleQuit}
+        />
+      )
+    }
+  } else if (view === 'history') {
+    if (gladiator) {
+      content = (
+        <BattleHistory
+          onBack={() => setView('dashboard')}
         />
       )
     } else {

@@ -4,6 +4,7 @@
 
 from contextlib import asynccontextmanager
 from collections import defaultdict, deque
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError as FastAPIRequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +19,7 @@ from sqlalchemy import inspect, or_, text
 
 from models import (
     GladiatorCreate, GladiatorResponse, StatAllocation,
-    EquipmentSlotRequest, ShopInventory
+    EquipmentSlotRequest, ShopInventory, ChallengeCreate
 )
 from gladiator import Gladiator
 from combat import Combat
@@ -26,7 +27,14 @@ from races import RACES
 from enemies import ENEMIES
 from leveling import apply_experience
 from database import engine, get_db
-from models_db import Base, GladiatorRow, EquipmentRow, GladiatorEquipmentRow
+from models_db import (
+    Base,
+    GladiatorRow,
+    EquipmentRow,
+    GladiatorEquipmentRow,
+    ChallengeRow,
+    FightHistoryRow,
+)
 from equipment import (
     initialize_equipment, get_all_equipment, get_shop_inventory,
     get_gladiator_equipment, get_equipped_items, equip_item, unequip_item,
@@ -275,13 +283,54 @@ def _save_gladiator(
     return row
 
 
-def _queue_notification(player_token: str, message: str):
+def _queue_notification(
+    player_token: str,
+    message: str,
+    notification_type: str = "random_battle",
+):
     random_battle_notifications[player_token].append(
-        {"type": "random_battle", "message": message}
+        {"type": notification_type, "message": message}
     )
 
 
-def _run_random_battle(db, challenger_row: GladiatorRow, opponent_row: GladiatorRow):
+def _append_round_to_battle_log(combat: Combat, round_info: dict):
+    combat.battle_log.append(f"Round {round_info['round']}")
+    combat.battle_log.extend(round_info["actions"])
+
+
+def _simulate_full_combat(combat: Combat):
+    winner = None
+    while winner is None:
+        round_info = combat.execute_round()
+        _append_round_to_battle_log(combat, round_info)
+        winner = round_info["winner"]
+    return winner
+
+
+def _record_fight_history(
+    db,
+    player_token: str,
+    mode: str,
+    opponent_name: str,
+    opponent_race: str,
+    opponent_level: int,
+    result: str,
+    battle_log: list[str] | None,
+):
+    row = FightHistoryRow(
+        player_token=player_token,
+        mode=mode,
+        opponent_name=opponent_name,
+        opponent_race=opponent_race or "Unknown",
+        opponent_level=max(0, int(opponent_level)),
+        result=result,
+        battle_log=list(battle_log or []),
+    )
+    db.add(row)
+    return row
+
+
+def _run_pvp_battle(db, challenger_row: GladiatorRow, opponent_row: GladiatorRow):
     challenger = _gladiator_from_row(db, challenger_row, apply_equipment_bonuses=True)
     opponent = _gladiator_from_row(db, opponent_row, apply_equipment_bonuses=True)
 
@@ -289,21 +338,22 @@ def _run_random_battle(db, challenger_row: GladiatorRow, opponent_row: Gladiator
     opponent.current_health = opponent.max_health
 
     combat = Combat(challenger, opponent)
-    winner = None
-    while winner is None:
-        round_info = combat.execute_round()
-        winner = round_info["winner"]
+    winner = _simulate_full_combat(combat)
 
     if winner == "player":
         challenger.wins += 1
         opponent.losses += 1
         winner_name = challenger.name
         loser_name = opponent.name
+        challenger_result = "victory"
+        opponent_result = "defeat"
     else:
         challenger.losses += 1
         opponent.wins += 1
         winner_name = opponent.name
         loser_name = challenger.name
+        challenger_result = "defeat"
+        opponent_result = "victory"
 
     _save_gladiator(db, challenger, challenger_row.player_token, row=challenger_row)
     _save_gladiator(db, opponent, opponent_row.player_token, row=opponent_row)
@@ -314,6 +364,9 @@ def _run_random_battle(db, challenger_row: GladiatorRow, opponent_row: Gladiator
         "rounds": combat.round,
         "challenger_survived": challenger.is_alive(),
         "opponent_survived": opponent.is_alive(),
+        "challenger_result": challenger_result,
+        "opponent_result": opponent_result,
+        "battle_log": list(combat.battle_log),
     }
 
 
@@ -394,6 +447,15 @@ def create_gladiator(gladiator_data: GladiatorCreate, request: Request):
     with get_db() as db:
         existing = _get_gladiator_row(db, player_token)
         if existing:
+            db.query(ChallengeRow).filter(
+                or_(
+                    ChallengeRow.challenger_player_token == player_token,
+                    ChallengeRow.challenged_player_token == player_token,
+                )
+            ).delete()
+            db.query(FightHistoryRow).filter(
+                FightHistoryRow.player_token == player_token
+            ).delete()
             db.query(GladiatorEquipmentRow).filter(
                 GladiatorEquipmentRow.gladiator_id == existing.id
             ).delete()
@@ -593,8 +655,7 @@ def execute_combat_round(request: Request):
         raise HTTPException(status_code=400, detail="No active combat. Please start a new combat.")
     
     round_info = combat.execute_round()
-    combat.battle_log.append(f"Round {round_info['round']}")
-    combat.battle_log.extend(round_info["actions"])
+    _append_round_to_battle_log(combat, round_info)
     
     return {
         "round": round_info["round"],
@@ -640,6 +701,22 @@ def finish_combat(request: Request):
 
     with get_db() as db:
         _save_gladiator(db, player, player_token)
+        opponent_race = getattr(opponent, "race", "Unknown") or "Unknown"
+        if opponent.name in ENEMIES:
+            opponent_level = int(ENEMIES[opponent.name].get("min_level", 0))
+        else:
+            opponent_level = int(getattr(opponent, "level", 0) or 0)
+        _record_fight_history(
+            db,
+            player_token=player_token,
+            mode="pve",
+            opponent_name=opponent.name,
+            opponent_race=opponent_race,
+            opponent_level=opponent_level,
+            result=result,
+            battle_log=battle_log,
+        )
+        db.commit()
 
     _set_current_combat(player_token, None)
 
@@ -650,6 +727,170 @@ def finish_combat(request: Request):
         "reward_exp": reward_exp if player.is_alive() else 0,
         "battle_log": battle_log
     }
+
+
+@app.get("/pvp/gladiators")
+def list_pvp_gladiators(request: Request):
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        rows = (
+            db.query(GladiatorRow)
+            .filter(GladiatorRow.player_token != player_token)
+            .order_by(GladiatorRow.level.desc(), GladiatorRow.name.asc())
+            .all()
+        )
+        return [
+            {
+                "player_token": row.player_token,
+                "name": row.name,
+                "race": row.race,
+                "level": row.level,
+                "wins": row.wins,
+                "losses": row.losses,
+            }
+            for row in rows
+        ]
+
+
+@app.post("/pvp/challenges")
+def create_pvp_challenge(payload: ChallengeCreate, request: Request):
+    player_token = _resolve_player_token(request)
+    target_token = payload.target_player_token.strip()
+    if not target_token:
+        raise HTTPException(status_code=400, detail="Target gladiator is required")
+    if target_token == player_token:
+        raise HTTPException(status_code=400, detail="You cannot challenge yourself")
+
+    with get_db() as db:
+        challenger_row = _get_gladiator_row(db, player_token)
+        if challenger_row is None:
+            raise HTTPException(status_code=404, detail="No gladiator created")
+
+        challenged_row = _get_gladiator_row(db, target_token)
+        if challenged_row is None:
+            raise HTTPException(status_code=404, detail="Target gladiator not found")
+        challenger_name = challenger_row.name
+        challenger_level = challenger_row.level
+        challenger_race = challenger_row.race
+        challenged_name = challenged_row.name
+
+        existing = db.query(ChallengeRow).filter(
+            ChallengeRow.challenger_player_token == player_token,
+            ChallengeRow.challenged_player_token == target_token,
+            ChallengeRow.status == "pending",
+        ).first()
+        if existing:
+            return {"message": "Challenge already sent."}
+
+        challenge = ChallengeRow(
+            challenger_player_token=player_token,
+            challenged_player_token=target_token,
+            status="pending",
+        )
+        db.add(challenge)
+        db.commit()
+
+    with random_battle_lock:
+        _queue_notification(
+            target_token,
+            f"New challenge from {challenger_name} (Level {challenger_level}, {challenger_race}).",
+            notification_type="challenge",
+        )
+
+    return {"message": f"Challenge sent to {challenged_name}."}
+
+
+@app.get("/pvp/challenges")
+def list_incoming_challenges(request: Request):
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        challenge_rows = (
+            db.query(ChallengeRow)
+            .filter(
+                ChallengeRow.challenged_player_token == player_token,
+                ChallengeRow.status == "pending",
+            )
+            .order_by(ChallengeRow.created_at.asc(), ChallengeRow.id.asc())
+            .all()
+        )
+        results = []
+        for challenge in challenge_rows:
+            challenger_row = _get_gladiator_row(db, challenge.challenger_player_token)
+            if challenger_row is None:
+                continue
+            created_at = challenge.created_at.isoformat() if challenge.created_at else None
+            results.append(
+                {
+                    "id": challenge.id,
+                    "challenger_player_token": challenge.challenger_player_token,
+                    "challenger_name": challenger_row.name,
+                    "challenger_race": challenger_row.race,
+                    "challenger_level": challenger_row.level,
+                    "created_at": created_at,
+                }
+            )
+        return {"challenges": results}
+
+
+@app.post("/pvp/challenges/{challenge_id}/accept")
+def accept_pvp_challenge(challenge_id: int, request: Request):
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        challenge = db.query(ChallengeRow).filter(
+            ChallengeRow.id == challenge_id,
+            ChallengeRow.challenged_player_token == player_token,
+            ChallengeRow.status == "pending",
+        ).first()
+        if challenge is None:
+            raise HTTPException(status_code=404, detail="Challenge not found")
+
+        challenger_row = _get_gladiator_row(db, challenge.challenger_player_token)
+        challenged_row = _get_gladiator_row(db, player_token)
+        if challenger_row is None or challenged_row is None:
+            challenge.status = "cancelled"
+            challenge.resolved_at = datetime.now(timezone.utc)
+            db.commit()
+            raise HTTPException(status_code=400, detail="Challenge can no longer be accepted")
+
+        battle_result = _run_pvp_battle(db, challenger_row, challenged_row)
+        _record_fight_history(
+            db,
+            player_token=challenger_row.player_token,
+            mode="challenge_pvp",
+            opponent_name=challenged_row.name,
+            opponent_race=challenged_row.race,
+            opponent_level=challenged_row.level,
+            result=battle_result["challenger_result"],
+            battle_log=battle_result["battle_log"],
+        )
+        _record_fight_history(
+            db,
+            player_token=challenged_row.player_token,
+            mode="challenge_pvp",
+            opponent_name=challenger_row.name,
+            opponent_race=challenger_row.race,
+            opponent_level=challenger_row.level,
+            result=battle_result["opponent_result"],
+            battle_log=battle_result["battle_log"],
+        )
+        challenge.status = "accepted"
+        challenge.resolved_at = datetime.now(timezone.utc)
+        challenger_token = challenge.challenger_player_token
+        db.commit()
+
+    with random_battle_lock:
+        _queue_notification(
+            challenger_token,
+            f"Challenge battle complete: {battle_result['winner_name']} defeated {battle_result['loser_name']} in {battle_result['rounds']} rounds.",
+            notification_type="challenge",
+        )
+        _queue_notification(
+            player_token,
+            f"Challenge battle complete: {battle_result['winner_name']} defeated {battle_result['loser_name']} in {battle_result['rounds']} rounds.",
+            notification_type="challenge",
+        )
+
+    return {"message": "Challenge accepted.", "battle_result": battle_result}
 
 
 @app.post("/pvp/random-battle/join")
@@ -683,7 +924,28 @@ def join_random_battle(request: Request):
                     random_battle_queue.append(player_token)
             return {"status": "queued", "message": "Joined queue. Waiting for opponent."}
 
-        result = _run_random_battle(db, challenger_row, opponent_row)
+        result = _run_pvp_battle(db, challenger_row, opponent_row)
+        _record_fight_history(
+            db,
+            player_token=challenger_row.player_token,
+            mode="random_pvp",
+            opponent_name=opponent_row.name,
+            opponent_race=opponent_row.race,
+            opponent_level=opponent_row.level,
+            result=result["challenger_result"],
+            battle_log=result["battle_log"],
+        )
+        _record_fight_history(
+            db,
+            player_token=opponent_row.player_token,
+            mode="random_pvp",
+            opponent_name=challenger_row.name,
+            opponent_race=challenger_row.race,
+            opponent_level=challenger_row.level,
+            result=result["opponent_result"],
+            battle_log=result["battle_log"],
+        )
+        db.commit()
 
     with random_battle_lock:
         _queue_notification(
@@ -710,6 +972,58 @@ def get_notifications(request: Request):
         random_battle_notifications[player_token] = []
         is_queued = player_token in random_battle_queue
     return {"notifications": notifications, "queued_for_random_battle": is_queued}
+
+
+@app.get("/history")
+def get_fight_history(request: Request):
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        rows = (
+            db.query(FightHistoryRow)
+            .filter(FightHistoryRow.player_token == player_token)
+            .order_by(FightHistoryRow.id.desc())
+            .all()
+        )
+        return {
+            "fights": [
+                {
+                    "id": row.id,
+                    "mode": row.mode,
+                    "opponent_name": row.opponent_name,
+                    "opponent_race": row.opponent_race,
+                    "opponent_level": row.opponent_level,
+                    "result": row.result,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                }
+                for row in rows
+            ]
+        }
+
+
+@app.get("/history/{fight_id}")
+def get_fight_history_detail(fight_id: int, request: Request):
+    player_token = _resolve_player_token(request)
+    with get_db() as db:
+        row = (
+            db.query(FightHistoryRow)
+            .filter(
+                FightHistoryRow.id == fight_id,
+                FightHistoryRow.player_token == player_token,
+            )
+            .first()
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail="Fight not found")
+        return {
+            "id": row.id,
+            "mode": row.mode,
+            "opponent_name": row.opponent_name,
+            "opponent_race": row.opponent_race,
+            "opponent_level": row.opponent_level,
+            "result": row.result,
+            "battle_log": row.battle_log or [],
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        }
 
 
 @app.get("/equipment")
@@ -814,6 +1128,8 @@ def init_database():
     try:
         Base.metadata.create_all(bind=engine)
         with get_db() as db:
+            db.query(ChallengeRow).delete()
+            db.query(FightHistoryRow).delete()
             db.query(GladiatorEquipmentRow).delete()
             db.commit()
             initialize_equipment(db)
@@ -828,6 +1144,8 @@ def reset_database():
     try:
         Base.metadata.create_all(bind=engine)
         with get_db() as db:
+            db.query(ChallengeRow).delete()
+            db.query(FightHistoryRow).delete()
             db.query(GladiatorEquipmentRow).delete()
             db.query(GladiatorRow).delete()
             db.query(EquipmentRow).delete()

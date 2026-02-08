@@ -85,6 +85,8 @@ class TestMultiplayer:
 
             notes_a = client.get("/notifications", headers=headers_a)
             notes_b = client.get("/notifications", headers=headers_b)
+            history_a = client.get("/history", headers=headers_a)
+            history_b = client.get("/history", headers=headers_b)
 
             updated_a = client.get("/gladiator", headers=headers_a)
             updated_b = client.get("/gladiator", headers=headers_b)
@@ -100,8 +102,65 @@ class TestMultiplayer:
         assert len(notes_b.json()["notifications"]) == 1
         assert "Random battle complete" in notes_a.json()["notifications"][0]["message"]
         assert "Random battle complete" in notes_b.json()["notifications"][0]["message"]
+        assert len(history_a.json()["fights"]) == 1
+        assert len(history_b.json()["fights"]) == 1
+        assert history_a.json()["fights"][0]["mode"] == "random_pvp"
+        assert history_b.json()["fights"][0]["mode"] == "random_pvp"
 
         wins_losses_a = updated_a.json()["wins"] + updated_a.json()["losses"]
         wins_losses_b = updated_b.json()["wins"] + updated_b.json()["losses"]
         assert wins_losses_a == 1
         assert wins_losses_b == 1
+
+    def test_direct_challenge_flow_lists_and_accepts(self):
+        session = _make_session()
+        client = TestClient(app)
+        headers_a = {"X-Player-ID": "player-a"}
+        headers_b = {"X-Player-ID": "player-b"}
+
+        with patch("main.get_db", lambda: _db_context(session)):
+            client.post("/gladiator", headers=headers_a, json=_create_payload("Alpha"))
+            client.post("/gladiator", headers=headers_b, json=_create_payload("Bravo"))
+
+            roster = client.get("/pvp/gladiators", headers=headers_a)
+            assert roster.status_code == 200
+            assert len(roster.json()) == 1
+            assert roster.json()[0]["name"] == "Bravo"
+
+            send = client.post(
+                "/pvp/challenges",
+                headers=headers_a,
+                json={"target_player_token": "player-b"},
+            )
+            assert send.status_code == 200
+
+            incoming = client.get("/pvp/challenges", headers=headers_b)
+            assert incoming.status_code == 200
+            assert len(incoming.json()["challenges"]) == 1
+            challenge_id = incoming.json()["challenges"][0]["id"]
+            assert incoming.json()["challenges"][0]["challenger_name"] == "Alpha"
+            assert incoming.json()["challenges"][0]["challenger_race"] == "Human"
+            assert incoming.json()["challenges"][0]["challenger_level"] == 1
+
+            accepted = client.post(f"/pvp/challenges/{challenge_id}/accept", headers=headers_b)
+            assert accepted.status_code == 200
+            assert "battle_result" in accepted.json()
+
+            notes_a = client.get("/notifications", headers=headers_a)
+            notes_b = client.get("/notifications", headers=headers_b)
+            history_a = client.get("/history", headers=headers_a)
+            history_b = client.get("/history", headers=headers_b)
+            fight_id_a = history_a.json()["fights"][0]["id"]
+            detail_a = client.get(f"/history/{fight_id_a}", headers=headers_a)
+            assert any("Challenge battle complete" in n["message"] for n in notes_a.json()["notifications"])
+            assert any("Challenge battle complete" in n["message"] for n in notes_b.json()["notifications"])
+            assert history_a.json()["fights"][0]["mode"] == "challenge_pvp"
+            assert history_b.json()["fights"][0]["mode"] == "challenge_pvp"
+            assert len(detail_a.json()["battle_log"]) > 0
+
+            updated_a = client.get("/gladiator", headers=headers_a)
+            updated_b = client.get("/gladiator", headers=headers_b)
+            wins_losses_a = updated_a.json()["wins"] + updated_a.json()["losses"]
+            wins_losses_b = updated_b.json()["wins"] + updated_b.json()["losses"]
+            assert wins_losses_a == 1
+            assert wins_losses_b == 1

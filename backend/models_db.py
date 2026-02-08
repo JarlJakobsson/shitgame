@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, Integer, String, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, JSON, DateTime, func
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -65,3 +65,28 @@ class GladiatorRow(Base):
 
     stat_points = Column(Integer, nullable=False, default=0)
     equipped_items = Column(MutableDict.as_mutable(JSON), nullable=True)
+
+
+class ChallengeRow(Base):
+    __tablename__ = "challenges"
+
+    id = Column(Integer, primary_key=True)
+    challenger_player_token = Column(String, nullable=False, index=True)
+    challenged_player_token = Column(String, nullable=False, index=True)
+    status = Column(String, nullable=False, default="pending", index=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    resolved_at = Column(DateTime, nullable=True)
+
+
+class FightHistoryRow(Base):
+    __tablename__ = "fight_history"
+
+    id = Column(Integer, primary_key=True)
+    player_token = Column(String, nullable=False, index=True)
+    mode = Column(String, nullable=False, default="pve", index=True)
+    opponent_name = Column(String, nullable=False)
+    opponent_race = Column(String, nullable=False, default="Unknown")
+    opponent_level = Column(Integer, nullable=False, default=0)
+    result = Column(String, nullable=False, default="defeat", index=True)
+    battle_log = Column(JSON, nullable=False, default=list)
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)

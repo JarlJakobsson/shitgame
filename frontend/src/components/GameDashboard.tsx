@@ -16,6 +16,9 @@ interface GameDashboardProps {
   onTrain: () => void
   onFight: () => void
   onRandomBattle: () => void
+  onOpenGladiators: () => void
+  onOpenChallenges: () => void
+  onOpenHistory: () => void
   onAllocateStats: () => void
   onLogout: () => void
   loading: boolean
@@ -28,6 +31,9 @@ export function GameDashboard({
   onTrain,
   onFight,
   onRandomBattle,
+  onOpenGladiators,
+  onOpenChallenges,
+  onOpenHistory,
   onAllocateStats,
   onLogout,
   loading,
@@ -177,6 +183,27 @@ export function GameDashboard({
             disabled={loading || queuedForRandomBattle}
           >
             {queuedForRandomBattle ? 'Queued for Random Battle...' : 'Random Battle'}
+          </button>
+          <button
+            className={styles.primaryButton}
+            onClick={onOpenGladiators}
+            disabled={loading}
+          >
+            Gladiators
+          </button>
+          <button
+            className={styles.primaryButton}
+            onClick={onOpenChallenges}
+            disabled={loading}
+          >
+            Challenges
+          </button>
+          <button
+            className={styles.primaryButton}
+            onClick={onOpenHistory}
+            disabled={loading}
+          >
+            History
           </button>
           <button
             className={styles.button}

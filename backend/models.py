@@ -91,3 +91,7 @@ class BattleResult(BaseModel):
 
 class ShopInventory(BaseModel):
     available_items: List[Equipment]
+
+
+class ChallengeCreate(BaseModel):
+    target_player_token: str
