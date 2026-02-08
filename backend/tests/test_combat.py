@@ -113,7 +113,7 @@ class TestCombat:
         assert exhausted is True
         assert round_info["winner"] == "opponent"
 
-    def test_round_three_triggers_exhaustion_for_zero_stamina(self):
+    def test_round_two_triggers_exhaustion_for_zero_stamina(self):
         player = Gladiator("Player", "Human", use_race_stats=False)
         opponent = Gladiator("Opponent", "Orc", use_race_stats=False)
 
@@ -135,7 +135,7 @@ class TestCombat:
             round3 = combat.execute_round()
 
         assert round1["winner"] is None
-        assert round2["winner"] is None
+        assert round2["winner"] in {"player", "opponent"}
         assert round3["winner"] in {"player", "opponent"}
 
     def test_get_state(self):

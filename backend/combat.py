@@ -72,7 +72,7 @@ class Combat:
         round_info["actions"].append(
             f"Stamina check: {acting_gladiator.name} max_rounds={max_rounds}, current_round={self.round}"
         )
-        if self.round <= max_rounds:
+        if self.round < max_rounds:
             return False
 
         round_info["actions"].append(
