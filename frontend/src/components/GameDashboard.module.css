@@ -5,7 +5,7 @@
 }
 
 .dashboard {
-  max-width: 900px;
+  max-width: 1180px;
   margin: 0 auto;
   background: rgba(0, 0, 0, 0.82);
   border: 2px solid #667eea;
@@ -59,7 +59,18 @@
   display: grid;
   grid-template-columns: minmax(0, 220px) minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.5rem;
-  margin-bottom: 1.75rem;
+}
+
+.mainGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.overview {
+  display: grid;
+  gap: 1rem;
 }
 
 .portraitCard {
@@ -143,66 +154,145 @@
   transition: width 0.3s ease;
 }
 
-.healthNote {
-  color: #b7b7b7;
+.recoveryNote {
+  color: #7ef2ff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.progressBlock {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.1rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  color: #d7d7d7;
+  font-size: 0.85rem;
+}
+
+.progressHeader span:first-child {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.progressTrack {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  height: 14px;
+  overflow: hidden;
+}
+
+.progressFillXp,
+.progressFillRecovery {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progressFillXp {
+  background: linear-gradient(90deg, #f8b500, #ffd86f);
+}
+
+.progressFillRecovery {
+  background: linear-gradient(90deg, #42e9f5, #7ef2ff);
+}
+
+.actionsPanel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  border-radius: 10px;
+  padding: 1rem;
+  display: grid;
+  align-content: start;
+  gap: 0.9rem;
+}
+
+.actionsHeader {
+  color: #ffd700;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   font-size: 0.9rem;
 }
 
-.recoveryNote {
-  color: #7ef2ff;
+.record {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.recordItem {
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.4);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ccc;
+}
+
+.recordItem span {
+  color: #d7d7d7;
+}
+
+.recordItem strong {
+  color: #ffd700;
+  font-size: 1.15rem;
+}
+
+.attributesSection {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.sectionTitle {
+  color: #ffd700;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.8rem;
   font-size: 0.9rem;
-  font-weight: 600;
 }
 
 .attributes {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
 }
 
 .attribute {
   background: rgba(102, 126, 234, 0.1);
   border: 1px solid #667eea;
-  padding: 1rem;
-  border-radius: 5px;
+  padding: 0.9rem;
+  border-radius: 6px;
   text-align: center;
   color: #ccc;
 }
 
 .attribute span:first-child {
   display: block;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.record {
-  display: flex;
-  justify-content: space-around;
-  background: rgba(102, 126, 234, 0.1);
-  padding: 1rem;
-  border-radius: 5px;
-  margin-bottom: 1.5rem;
-  color: #ccc;
-}
-
-.record strong {
-  color: #ffd700;
+  font-size: 1.4rem;
+  margin-bottom: 0.4rem;
 }
 
 .actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 0.75rem;
 }
 
 .button,
 .primaryButton {
-  flex: 1 1 200px;
-  padding: 1rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
   border: none;
   border-radius: 5px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: bold;
@@ -236,6 +326,10 @@
 }
 
 @media (max-width: 900px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+
   .heroRow {
     grid-template-columns: 1fr;
   }
@@ -252,6 +346,10 @@
 
   .dashboard {
     padding: 1.5rem;
+  }
+
+  .record {
+    grid-template-columns: 1fr;
   }
 
   .attributes {
