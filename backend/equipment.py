@@ -5,7 +5,7 @@
 from typing import List, Dict
 from sqlalchemy.orm import Session
 from models_db import EquipmentRow, GladiatorRow, GladiatorEquipmentRow
-from models import Equipment, GladiatorEquipment, EquipmentSlotRequest
+from schemas import Equipment, GladiatorEquipment, EquipmentSlotRequest
 
 
 # Equipment slots configuration

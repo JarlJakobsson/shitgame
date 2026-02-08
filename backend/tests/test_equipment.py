@@ -18,7 +18,7 @@ from equipment import (
     purchase_equipment,
     unequip_item,
 )
-from models import EquipmentSlotRequest
+from schemas import EquipmentSlotRequest
 from models_db import Base, GladiatorEquipmentRow, GladiatorRow
 
 

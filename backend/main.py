@@ -17,7 +17,7 @@ import random
 
 from sqlalchemy import inspect, or_, text
 
-from models import (
+from schemas import (
     GladiatorCreate, GladiatorResponse, StatAllocation,
     EquipmentSlotRequest, ShopInventory, ChallengeCreate
 )

@@ -12,3 +12,7 @@ env/
 *.egg-info/
 progress.md
 frontend/.env.production
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js

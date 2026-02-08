@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from gladiator import Gladiator
 from main import app
-from models import Equipment
+from schemas import Equipment
 
 
 client = TestClient(app)

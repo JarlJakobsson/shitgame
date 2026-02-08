@@ -29,14 +29,14 @@ Web-based gladiator game with a React frontend and FastAPI backend.
 |   |-- gladiator.py
 |   |-- enemies.py
 |   |-- equipment.py
-|   |-- models.py
+|   |-- schemas.py
 |   |-- models_db.py
 |   `-- requirements.txt
 |-- frontend/
 |   |-- src/
 |   |-- Dockerfile
 |   |-- nginx.conf
-|   `-- vite.config.js
+|   `-- vite.config.ts
 |-- docker-compose.yml
 `-- README.md
 ```
