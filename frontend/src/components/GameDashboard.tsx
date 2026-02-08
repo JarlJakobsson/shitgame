@@ -55,9 +55,7 @@ export function GameDashboard({
     0,
     Math.min(100, ((recoveryInterval - recoverySeconds) / recoveryInterval) * 100),
   )
-  const recoveryMinutesPart = Math.floor(recoverySeconds / 60)
-  const recoverySecondsPart = recoverySeconds % 60
-  const recoveryCountdown = `${String(recoveryMinutesPart).padStart(2, '0')}:${String(recoverySecondsPart).padStart(2, '0')}`
+  const recoveryElapsed = Math.max(0, recoveryInterval - recoverySeconds)
   const raceKey = gladiator.race.toLowerCase()
   const portraitMap: Record<string, string> = {
     human: humanImg,
@@ -119,48 +117,49 @@ export function GameDashboard({
                     <span className={styles.unspent}>{gladiator.stat_points} pts</span>
                   </div>
                 )}
-
-                <div className={styles.progressBlock}>
-                  <div className={styles.progressHeader}>
-                    <span>XP Progress</span>
-                    <span>{gladiator.experience} / {xpToNext}</span>
-                  </div>
-                  <div className={styles.progressTrack}>
-                    <div
-                      className={styles.progressFillXp}
-                      style={{ width: `${xpProgressPercentage}%` }}
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className={styles.healthCard}>
-                <div className={styles.healthHeader}>
+                <div className={styles.barLabel}>
+                  <span className={styles.labelIcon}>{'❤️'}</span>
                   <span>HP</span>
-                  <span className={styles.healthValue}>
-                    {gladiator.current_health} / {gladiator.max_health}
-                  </span>
                 </div>
                 <div className={styles.barContainer}>
                   <div
                     className={styles.bar}
                     style={{ width: `${healthPercentage}%` }}
                   />
+                  <span className={styles.barText}>
+                    {gladiator.current_health}/{gladiator.max_health} HP
+                  </span>
                 </div>
                 <div className={styles.progressBlock}>
-                  <div className={styles.progressHeader}>
-                    <span>Recovery</span>
-                    <span>{recoveryCountdown}</span>
+                  <div className={styles.barLabel}>
+                    <span className={styles.labelIcon}>{'📖'}</span>
+                    <span>XP</span>
                   </div>
-                  <div className={styles.progressTrack}>
+                  <div className={styles.barContainer}>
+                    <div
+                      className={styles.progressFillXp}
+                      style={{ width: `${xpProgressPercentage}%` }}
+                    />
+                    <span className={styles.barText}>
+                      {gladiator.experience}/{xpToNext} XP
+                    </span>
+                  </div>
+                </div>
+                <div className={styles.progressBlock}>
+                  <div className={styles.barLabel}>
+                    <span className={styles.labelIcon}>{'🔄'}</span>
+                    <span>Recovery</span>
+                  </div>
+                  <div className={styles.barContainer}>
                     <div
                       className={styles.progressFillRecovery}
                       style={{ width: `${recoveryProgressPercentage}%` }}
                     />
+                    <span className={styles.barText}>{recoveryElapsed}/{recoveryInterval}</span>
                   </div>
-                </div>
-                <div className={styles.recoveryNote}>
-                  +33% HP when timer hits 00:00
                 </div>
               </div>
             </div>

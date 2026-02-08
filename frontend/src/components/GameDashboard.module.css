@@ -127,20 +127,8 @@
   font-weight: 700;
 }
 
-.healthHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  color: #ffd700;
-  font-weight: 700;
-}
-
-.healthValue {
-  color: #ffffff;
-  font-weight: 700;
-}
-
 .barContainer {
+  position: relative;
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid #667eea;
   border-radius: 6px;
@@ -154,16 +142,25 @@
   transition: width 0.3s ease;
 }
 
-.recoveryNote {
-  color: #7ef2ff;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
 .progressBlock {
   display: grid;
   gap: 0.45rem;
   margin-top: 0.1rem;
+}
+
+.barLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #ffd700;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.labelIcon {
+  min-width: 1.2rem;
+  display: inline-flex;
+  justify-content: center;
 }
 
 .progressHeader {
@@ -179,10 +176,11 @@
 }
 
 .progressTrack {
+  position: relative;
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid #667eea;
   border-radius: 6px;
-  height: 14px;
+  height: 22px;
   overflow: hidden;
 }
 
@@ -198,6 +196,20 @@
 
 .progressFillRecovery {
   background: linear-gradient(90deg, #42e9f5, #7ef2ff);
+}
+
+.barText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  letter-spacing: 0.02em;
 }
 
 .actionsPanel {
