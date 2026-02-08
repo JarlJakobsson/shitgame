@@ -14,7 +14,7 @@ _XP_COEFF = 54.81592736945923
 def xp_to_next(level: int) -> int:
     """Return XP required to advance from the given level."""
     if level < 1:
-        level = 1
+        raise ValueError(f"Invalid level: {level}. Level must be >= 1.")
     return max(1, int(round(_XP_COEFF * (level ** _XP_POWER))))
 
 
