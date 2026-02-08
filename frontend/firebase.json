@@ -8,11 +8,11 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "jarlworld-api",
-          "region": "europe-north1"
-        }
+      "source": "/api/**",
+      "run": {
+        "serviceId": "gladiator-api",
+        "region": "europe-north1"
+      }
       },
       {
         "source": "**",
