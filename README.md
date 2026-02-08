@@ -1,115 +1,147 @@
 # Gladiator Arena
 
-A text-based gladiator game converted to a web-based application.
+Web-based gladiator game with a React frontend and FastAPI backend.
 
-## Stack
+## Tech Stack
 
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: Python + FastAPI
+- Frontend: React + TypeScript + Vite
+- Backend: FastAPI + SQLAlchemy
+- Database: PostgreSQL
+- Deployment/runtime: Docker Compose (Nginx + API + DB)
+
+## Main Features
+
+- Create and manage gladiators
+- Arena PvE battles
+- Equipment and shop system
+- Training and stat allocation
+- Persistent progression (gold, XP, wins/losses)
+- Basic multiplayer identity per browser tab/window
+- Random battle queue (match 2 queued players and notify both when finished)
 
 ## Project Structure
 
-```
-jarlworld/
-├── backend/           # Python FastAPI server
-│   ├── main.py       # FastAPI app
-│   ├── gladiator.py  # Gladiator class
-│   ├── combat.py     # Combat system
-│   ├── races.py      # Race definitions
-│   ├── constants.py  # Game constants
-│   ├── models.py     # Pydantic models
-│   └── requirements.txt
-├── frontend/         # React TypeScript app
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── services/    # API service
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
-└── README.md
+```text
+.
+|-- backend/
+|   |-- main.py
+|   |-- combat.py
+|   |-- gladiator.py
+|   |-- enemies.py
+|   |-- equipment.py
+|   |-- models.py
+|   |-- models_db.py
+|   `-- requirements.txt
+|-- frontend/
+|   |-- src/
+|   |-- Dockerfile
+|   |-- nginx.conf
+|   `-- vite.config.js
+|-- docker-compose.yml
+`-- README.md
 ```
 
-## Setup Instructions
+## Quick Start (Docker, recommended)
 
-### Backend Setup
+From repo root:
 
-1. Navigate to the backend folder:
-   ```bash
-   cd backend
-   ```
+```bash
+docker compose up --build
+```
 
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   ```
+Services:
 
-3. Activate the virtual environment:
-   ```bash
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
+- Frontend (Nginx): `http://localhost:8080`
+- Backend API: `http://localhost:5000`
+- API docs: `http://localhost:5000/docs`
+- PostgreSQL: `localhost:5432`
 
-4. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Stop:
 
-5. Run the FastAPI server:
-   ```bash
-   uvicorn main:app --reload
-   ```
+```bash
+docker compose down
+```
 
-   The API will be available at `http://localhost:8000`
-   - API docs: `http://localhost:8000/docs`
+## Local Development (without Docker)
 
-### Frontend Setup
+### 1) Start PostgreSQL
 
-1. Navigate to the frontend folder (in a new terminal):
-   ```bash
-   cd frontend
-   ```
+Backend expects PostgreSQL. By default it reads:
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+- `POSTGRES_HOST` (default `localhost`)
+- `POSTGRES_PORT` (default `5432`)
+- `POSTGRES_DB` (default `gladiator`)
+- `POSTGRES_USER` (default `gladiator`)
+- `POSTGRES_PASSWORD` (default `gladiator`)
 
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
+You can also set `DATABASE_URL` directly.
 
-   The app will be available at `http://localhost:3000`
+### 2) Backend
 
-## How to Play
+```bash
+cd backend
+python -m venv venv
+```
 
-1. Start both the backend and frontend servers
-2. Open `http://localhost:3000` in your browser
-3. Create your gladiator and choose a race
-4. Train to improve your stats (costs gold)
-5. Fight in the arena to earn experience and gold
-6. Compete and become a champion!
+Activate venv:
 
-## Features
+- PowerShell: `./venv/Scripts/Activate.ps1`
+- Git Bash: `source venv/Scripts/activate`
 
-- Create a gladiator with different races (Human, Orc)
-- Real-time turn-based combat system
-- Training system to improve stats
-- Gold and experience rewards
-- Win/loss tracking
-- Beautiful UI with animations
+Install + run:
 
-## API Endpoints
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload --port 5000
+```
 
-- `GET /` - Health check
-- `GET /races` - Get all races
-- `POST /gladiator` - Create a gladiator
-- `GET /gladiator` - Get current gladiator stats
-- `POST /gladiator/train` - Train the gladiator
-- `POST /combat/start` - Start a combat
-- `POST /combat/round` - Execute a combat round
-- `POST /combat/finish` - Finish combat and get rewards
+Backend: `http://localhost:5000`
+
+### 3) Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend: `http://localhost:3000`
+
+In local dev, `.env.development` points frontend API calls to `http://localhost:5000`.
+
+## Multiplayer Notes
+
+- The frontend sends an `X-Player-ID` header automatically (generated per browser tab via `sessionStorage`).
+- Opening a second browser window/tab (or incognito) creates a different player identity.
+- Each player can create their own gladiator without overwriting the other.
+- Random matchmaking flow:
+  - Player A clicks `Random Battle` -> queued.
+  - Player B clicks `Random Battle` -> they are matched.
+  - Battle resolves server-side.
+  - Both players receive a completion notification and updated win/loss stats.
+
+## Important API Endpoints
+
+- `GET /health`
+- `GET /races`
+- `GET /enemies`
+- `POST /gladiator`
+- `GET /gladiator`
+- `POST /gladiator/train`
+- `POST /gladiator/allocate`
+- `POST /combat/start`
+- `POST /combat/round`
+- `POST /combat/finish`
+- `GET /equipment`
+- `GET /equipment/shop`
+- `POST /equipment/purchase/{equipment_id}`
+- `POST /pvp/random-battle/join`
+- `GET /notifications`
+
+## Testing
+
+Backend tests:
+
+```bash
+backend\\venv\\Scripts\\python -m pytest backend/tests -q
+```
