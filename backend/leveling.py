@@ -18,31 +18,14 @@ def xp_to_next(level: int) -> int:
     return max(1, int(round(_XP_COEFF * (level ** _XP_POWER))))
 
 
-def apply_experience(gladiator, amount: int) -> dict:
-    """
-    Apply experience, leveling up as needed.
-
-    Returns a dict with:
-      - levels_gained
-      - xp_to_next
-    """
+def apply_experience(gladiator, amount: int) -> None:
+    """Apply experience with at most one level-up per reward."""
     if amount <= 0:
-        return {"levels_gained": 0, "xp_to_next": xp_to_next(gladiator.level)}
+        return
 
     gladiator.experience += amount
-    levels_gained = 0
-
-    while True:
-        required = xp_to_next(gladiator.level)
-        if gladiator.experience < required:
-            break
+    required = xp_to_next(gladiator.level)
+    if gladiator.experience >= required:
         gladiator.experience -= required
         gladiator.level += 1
-        levels_gained += 1
-
-    if levels_gained > 0:
-        if not hasattr(gladiator, "stat_points"):
-            gladiator.stat_points = 0
-        gladiator.stat_points += levels_gained * 20
-
-    return {"levels_gained": levels_gained, "xp_to_next": xp_to_next(gladiator.level)}
+        gladiator.stat_points = getattr(gladiator, "stat_points", 0) + 20

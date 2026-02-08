@@ -108,7 +108,7 @@ class Gladiator(Character):
         print(f"Wins: {self.wins}")
         print(f"Losses: {self.losses}")
 
-    def add_experience(self, amount: int) -> dict:
+    def add_experience(self, amount: int) -> None:
         return apply_experience(self, amount)
 
     def apply_persisted_stats(self, data: dict):
