@@ -768,22 +768,13 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
         enemy_data = ENEMIES[enemy_name]
         opponent = Enemy(enemy_name, enemy_data)
     else:
-        # Fallback to random race/difficulty
+        # Fallback to a random race opponent.
         opponent_races = list(RACES.keys())
         if not opponent_races:
             print("No races available for opponent selection")
             raise HTTPException(status_code=500, detail="No races available for opponent selection")
         opponent_race = random.choice(opponent_races)
-        difficulty = random.choice(["Weak", "Normal", "Strong"])
-        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race, use_race_stats=True)
-        if difficulty == "Weak":
-            opponent.strength = int(opponent.strength * 0.8)
-            opponent.dodge = int(opponent.dodge * 0.8)
-            opponent.max_health = int(opponent.max_health * 0.9)
-        elif difficulty == "Strong":
-            opponent.strength = int(opponent.strength * 1.2)
-            opponent.dodge = int(opponent.dodge * 1.2)
-            opponent.max_health = int(opponent.max_health * 1.1)
+        opponent = Gladiator(opponent_race, opponent_race, use_race_stats=True)
         opponent.current_health = opponent.max_health
 
     combat = Combat(current_gladiator, opponent)
@@ -848,10 +839,8 @@ def finish_combat(request: Request):
             winner = "opponent"
 
     if winner == "player":
-        # Determine difficulty
-        difficulty = "Strong" if "Strong" in opponent.name else ("Weak" if "Weak" in opponent.name else "Normal")
-        reward_exp = 60 if difficulty == "Strong" else (45 if difficulty == "Normal" else 30)
-        reward_gold = 30 if difficulty == "Strong" else (20 if difficulty == "Normal" else 10)
+        reward_exp = 45
+        reward_gold = 20
 
         apply_experience(player, reward_exp)
         player.gold += reward_gold

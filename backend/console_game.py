@@ -80,18 +80,7 @@ class Game:
         # Create opponent
         opponent_races = ["Human", "Orc"]
         opponent_race = random.choice(opponent_races)
-        difficulty = random.choice(["Weak", "Normal", "Strong"])
-        opponent = Gladiator(f"{difficulty} {opponent_race}", opponent_race, use_race_stats=True)
-        
-        # Adjust opponent stats based on difficulty
-        if difficulty == "Weak":
-            opponent.strength = int(opponent.strength * 0.8)
-            opponent.dodge = int(opponent.dodge * 0.8)
-            opponent.max_health = int(opponent.max_health * 0.9)
-        elif difficulty == "Strong":
-            opponent.strength = int(opponent.strength * 1.2)
-            opponent.dodge = int(opponent.dodge * 1.2)
-            opponent.max_health = int(opponent.max_health * 1.1)
+        opponent = Gladiator(opponent_race, opponent_race, use_race_stats=True)
         
         opponent.current_health = opponent.max_health
         
@@ -103,8 +92,8 @@ class Game:
         print("\n" + "="*50)
         if winner == self.player_gladiator:
             print("✓ VICTORY!")
-            reward_exp = 60 if difficulty == "Strong" else (45 if difficulty == "Normal" else 30)
-            reward_gold = 30 if difficulty == "Strong" else (20 if difficulty == "Normal" else 10)
+            reward_exp = 45
+            reward_gold = 20
             self.player_gladiator.add_experience(reward_exp)
             self.player_gladiator.gold += reward_gold
             self.player_gladiator.wins += 1
