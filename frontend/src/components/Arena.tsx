@@ -21,6 +21,19 @@ const enemyImages: Record<string, string> = {
   slime: slimeImg,
 };
 
+const getOpponentImage = (opponentName: string, opponentRace?: string): string | undefined => {
+  const opponentNameKey = opponentName.toLowerCase();
+  if (enemyImages[opponentNameKey]) {
+    return enemyImages[opponentNameKey];
+  }
+
+  if (!opponentRace) {
+    return undefined;
+  }
+
+  return enemyImages[opponentRace.toLowerCase()];
+};
+
 interface ArenaProps {
   onBattleEnd: () => void;
   playerRace: string;
@@ -213,6 +226,8 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
     return <div className={styles.container}><div>Failed to load arena</div></div>;
   }
 
+  const opponentImage = getOpponentImage(combatState.opponent_name, combatState.opponent_race);
+
   return (
     <div className={styles.container}>
       <div className={styles.arena}>
@@ -317,9 +332,9 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
           </div>
 
           <div className={styles.fighter}>
-            {enemyImages[(combatState.opponent_race || combatState.opponent_name).toLowerCase()] && (
+            {opponentImage && (
               <img
-                src={enemyImages[(combatState.opponent_race || combatState.opponent_name).toLowerCase()]}
+                src={opponentImage}
                 alt={combatState.opponent_name}
                 className={styles.fighterImage}
               />
