@@ -2,7 +2,6 @@
 # COMBAT SYSTEM
 # ============================================
 
-import math
 import random
 
 
@@ -13,11 +12,6 @@ class Combat:
     #   round 3  -> 6 stamina
     #   round 9  -> 32 stamina
     #   round 30 -> 177 stamina
-    #
-    # Max rounds for a fighter are derived as the highest round where
-    # required_stamina(round) <= stamina.
-    # Rounds 1-2 are free (0 stamina required).
-    _FREE_ROUNDS = 2
     _ROUND_CURVE_K = 1.670720618993031
     _ROUND_CURVE_P = 1.3773508863994484
     _ROUND_CURVE_D = 0.4699618883838388
