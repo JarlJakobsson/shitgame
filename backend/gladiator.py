@@ -5,8 +5,10 @@
 import math
 
 from races import RACES
-from constants import STARTING_GOLD, STARTING_EXPERIENCE
 from leveling import apply_experience
+
+STARTING_GOLD = 100
+STARTING_EXPERIENCE = 0
 
 
 
