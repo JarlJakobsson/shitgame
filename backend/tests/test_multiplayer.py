@@ -222,3 +222,36 @@ class TestMultiplayer:
 
         heal_amount = max(1, int(max_health * main.RECOVERY_HEAL_PERCENT))
         assert updated.json()["current_health"] == min(max_health, 5 + heal_amount)
+
+    def test_exhausted_player_gets_defeat_and_no_rewards(self):
+        session = _make_session()
+        client = TestClient(app)
+        headers = {"X-Player-ID": "player-a"}
+        payload = {
+            "name": "Alpha",
+            "race": "Human",
+            "health": 30,
+            "strength": 20,
+            "dodge": 20,
+            "initiative": 20,
+            "weaponskill": 20,
+            "stamina": 1,
+        }
+
+        with patch("main.get_db", lambda: _db_context(session)):
+            created = client.post("/gladiator", headers=headers, json=payload)
+            assert created.status_code == 200
+            start = client.post("/combat/start", headers=headers, json={"enemy_name": "Slime"})
+            assert start.status_code == 200
+
+            winner = None
+            while winner is None:
+                round_result = client.post("/combat/round", headers=headers)
+                assert round_result.status_code == 200
+                winner = round_result.json()["winner"]
+
+            finished = client.post("/combat/finish", headers=headers)
+            assert finished.status_code == 200
+            assert finished.json()["result"] == "defeat"
+            assert finished.json()["reward_gold"] == 0
+            assert finished.json()["reward_exp"] == 0

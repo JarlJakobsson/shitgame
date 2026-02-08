@@ -835,8 +835,19 @@ def finish_combat(request: Request):
     
     player = combat.player
     opponent = combat.opponent
-    
-    if player.is_alive():
+
+    winner = getattr(combat, "winner", None)
+    if winner is None:
+        if player.is_alive() and not opponent.is_alive():
+            winner = "player"
+        elif opponent.is_alive() and not player.is_alive():
+            winner = "opponent"
+        elif player.is_alive():
+            winner = "player"
+        else:
+            winner = "opponent"
+
+    if winner == "player":
         # Determine difficulty
         difficulty = "Strong" if "Strong" in opponent.name else ("Weak" if "Weak" in opponent.name else "Normal")
         reward_exp = 60 if difficulty == "Strong" else (45 if difficulty == "Normal" else 30)
@@ -850,6 +861,8 @@ def finish_combat(request: Request):
             combat.battle_log.append(f"You earned {reward_gold} gold and {reward_exp} experience!")
         result = "victory"
     else:
+        reward_exp = 0
+        reward_gold = 0
         player.losses += 1
         result = "defeat"
 
@@ -870,8 +883,8 @@ def finish_combat(request: Request):
             opponent=opponent,
             result=result,
             battle_log=battle_log,
-            reward_gold=reward_gold if player.is_alive() else 0,
-            reward_exp=reward_exp if player.is_alive() else 0,
+            reward_gold=reward_gold,
+            reward_exp=reward_exp,
             rounds=combat.round,
         )
         battle_screen["opponent"]["level"] = opponent_level
@@ -893,8 +906,8 @@ def finish_combat(request: Request):
     return {
         "result": result,
         "gladiator": GladiatorResponse(**player.to_dict()),
-        "reward_gold": reward_gold if player.is_alive() else 0,
-        "reward_exp": reward_exp if player.is_alive() else 0,
+        "reward_gold": reward_gold,
+        "reward_exp": reward_exp,
         "battle_log": battle_log
     }
 

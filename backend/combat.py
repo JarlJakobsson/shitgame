@@ -2,11 +2,25 @@
 # COMBAT SYSTEM
 # ============================================
 
+import math
 import random
 
 
 class Combat:
     """Handles combat between two gladiators."""
+    # Non-linear required-stamina curve by round.
+    # Calibrated to anchors:
+    #   round 3  -> 6 stamina
+    #   round 9  -> 32 stamina
+    #   round 30 -> 177 stamina
+    #
+    # Max rounds for a fighter are derived as the highest round where
+    # required_stamina(round) <= stamina.
+    # Rounds 1-2 are free (0 stamina required).
+    _FREE_ROUNDS = 2
+    _ROUND_CURVE_K = 1.670720618993031
+    _ROUND_CURVE_P = 1.3773508863994484
+    _ROUND_CURVE_D = 0.4699618883838388
     
     def __init__(self, player, opponent):
         """
@@ -20,40 +34,52 @@ class Combat:
         self.opponent = opponent
         self.round = 0
         self.battle_log = []
-        self.player_stamina = max(0, int(player.stamina))
-        self.opponent_stamina = max(0, int(opponent.stamina))
+        self.player_max_rounds = self._round_capacity_from_stamina(player.stamina)
+        self.opponent_max_rounds = self._round_capacity_from_stamina(opponent.stamina)
+        self.winner = None
 
     @staticmethod
     def _required_stamina_for_round(round_number):
-        if round_number <= 2:
+        if round_number <= Combat._FREE_ROUNDS:
             return 0
-        # Power curve fit to the provided table (approximate).
-        a = 1.3081954270168985
-        b = 1.4465293529691468
-        return max(0, int(round(a * (round_number ** b))))
-
-    def _drain_stamina_end_of_round(self, round_info):
-        required_now = self._required_stamina_for_round(self.round)
-        required_prev = self._required_stamina_for_round(self.round - 1)
-        drain = max(0, required_now - required_prev)
-
-        self.player_stamina = max(0, self.player_stamina - drain)
-        self.opponent_stamina = max(0, self.opponent_stamina - drain)
-
-        round_info["actions"].append(
-            f"Stamina drain {drain}: {self.player.name}={self.player_stamina}, {self.opponent.name}={self.opponent_stamina}"
+        return max(
+            0,
+            int(
+                round(
+                    Combat._ROUND_CURVE_K
+                    * ((round_number - Combat._ROUND_CURVE_D) ** Combat._ROUND_CURVE_P)
+                )
+            ),
         )
 
-        # Check in order: player 1 then player 2.
-        if self.player_stamina <= 0:
-            round_info["actions"].append(f"{self.player.name} collapses from exhaustion!")
-            round_info["winner"] = "opponent"
-            return True
-        if self.opponent_stamina <= 0:
-            round_info["actions"].append(f"{self.opponent.name} collapses from exhaustion!")
-            round_info["winner"] = "player"
-            return True
-        return False
+    @staticmethod
+    def _round_capacity_from_stamina(stamina_stat):
+        stamina_value = max(0.0, float(stamina_stat))
+        max_rounds = Combat._FREE_ROUNDS
+        for round_number in range(Combat._FREE_ROUNDS + 1, 500):
+            required = Combat._required_stamina_for_round(round_number)
+            if required <= stamina_value:
+                max_rounds = round_number
+                continue
+            break
+        return max_rounds
+
+    def _max_rounds_of(self, gladiator):
+        return self.player_max_rounds if gladiator == self.player else self.opponent_max_rounds
+
+    def _check_exhaustion(self, round_info, acting_gladiator):
+        max_rounds = self._max_rounds_of(acting_gladiator)
+        round_info["actions"].append(
+            f"Stamina check: {acting_gladiator.name} max_rounds={max_rounds}, current_round={self.round}"
+        )
+        if self.round <= max_rounds:
+            return False
+
+        round_info["actions"].append(
+            f"{acting_gladiator.name} collapses from exhaustion!"
+        )
+        round_info["winner"] = "opponent" if acting_gladiator == self.player else "player"
+        return True
     
     def calculate_attack_damage(self, attacker, defender):
         """
@@ -119,6 +145,7 @@ class Combat:
         # Check if defender is defeated
         if not first_defender.is_alive():
             round_info["winner"] = "player" if first_attacker == self.player else "opponent"
+            self.winner = round_info["winner"]
             return round_info
 
         # Second attacker
@@ -136,12 +163,20 @@ class Combat:
         # Check if defender is defeated
         if not second_defender.is_alive():
             round_info["winner"] = "player" if second_attacker == self.player else "opponent"
+            self.winner = round_info["winner"]
             return round_info
 
-        if self._drain_stamina_end_of_round(round_info):
+        # Stamina checks happen only after both attacks, in attack order.
+        if self._check_exhaustion(round_info, first_attacker):
+            self.winner = round_info["winner"]
+            return round_info
+
+        if self._check_exhaustion(round_info, second_attacker):
+            self.winner = round_info["winner"]
             return round_info
 
         round_info["winner"] = None
+        self.winner = None
         return round_info
     
     def get_state(self):

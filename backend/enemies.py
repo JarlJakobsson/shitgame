@@ -49,7 +49,7 @@ ENEMIES = {
         "dodge": 5,
         "initiative": 5,
         "weaponskill": 1,
-        "stamina": 24,
+        "stamina": 27,
         "min_level": 1,
         "description": "A weak but persistent blob of goo."
     },

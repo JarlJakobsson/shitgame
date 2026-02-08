@@ -7,16 +7,7 @@ from enemies import ENEMIES
 
 
 def _collapse_round(stamina: int) -> int:
-    remaining = stamina
-    previous_required = 0
-    for round_number in range(1, 100):
-        required_now = Combat._required_stamina_for_round(round_number)
-        drain = max(0, required_now - previous_required)
-        remaining -= drain
-        previous_required = required_now
-        if remaining <= 0:
-            return round_number
-    raise AssertionError("Stamina did not collapse within expected range")
+    return Combat._round_capacity_from_stamina(stamina)
 
 
 def test_enemy_stamina_targets_8_to_14_rounds():

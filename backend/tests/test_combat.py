@@ -21,14 +21,17 @@ class TestCombat:
         assert combat.opponent == opponent
         assert combat.round == 0
         assert isinstance(combat.battle_log, list)
-        assert combat.player_stamina == player.stamina
-        assert combat.opponent_stamina == opponent.stamina
+        assert combat.player_max_rounds == Combat._round_capacity_from_stamina(player.stamina)
+        assert combat.opponent_max_rounds == Combat._round_capacity_from_stamina(opponent.stamina)
 
-    def test_required_stamina_curve(self):
-        assert Combat._required_stamina_for_round(1) == 0
-        assert Combat._required_stamina_for_round(2) == 0
-        assert Combat._required_stamina_for_round(3) > 0
-        assert Combat._required_stamina_for_round(8) > Combat._required_stamina_for_round(5)
+    def test_stamina_capacity_curve(self):
+        assert Combat._round_capacity_from_stamina(0) == 2
+        assert Combat._round_capacity_from_stamina(1) >= 2
+        assert Combat._round_capacity_from_stamina(18) == 6
+        assert Combat._round_capacity_from_stamina(30) == 8
+        assert Combat._round_capacity_from_stamina(32) == 9
+        assert Combat._round_capacity_from_stamina(177) == 30
+        assert Combat._round_capacity_from_stamina(30) > Combat._round_capacity_from_stamina(20)
 
     def test_calculate_attack_damage_miss(self):
         attacker = Gladiator("Attacker", "Human", use_race_stats=False)
@@ -89,7 +92,7 @@ class TestCombat:
         assert "winner" in round_info
         assert len(round_info["actions"]) >= 2
 
-    def test_stamina_exhaustion_order_player_first(self):
+    def test_stamina_exhaustion_order_first_attacker_checked_first(self):
         player = Gladiator("Player", "Human", use_race_stats=False)
         opponent = Gladiator("Opponent", "Orc", use_race_stats=False)
 
@@ -100,17 +103,40 @@ class TestCombat:
         player.dodge = opponent.dodge = 9999
         player.initiative = opponent.initiative = 0
 
-        player.stamina = 1
-        opponent.stamina = 1
+        player.stamina = 18
+        opponent.stamina = 18
 
         combat = Combat(player, opponent)
-        combat.round = 5
-        round_info = {"round": 6, "actions": []}
-
-        exhausted = combat._drain_stamina_end_of_round(round_info)
-
+        combat.round = combat.player_max_rounds + 1
+        round_info = {"round": combat.round, "actions": []}
+        exhausted = combat._check_exhaustion(round_info, player)
         assert exhausted is True
         assert round_info["winner"] == "opponent"
+
+    def test_round_three_triggers_exhaustion_for_zero_stamina(self):
+        player = Gladiator("Player", "Human", use_race_stats=False)
+        opponent = Gladiator("Opponent", "Orc", use_race_stats=False)
+
+        player.max_health = player.current_health = 999
+        opponent.max_health = opponent.current_health = 999
+        player.strength = opponent.strength = 1
+        player.weaponskill = opponent.weaponskill = 1
+        player.dodge = opponent.dodge = 9999
+        player.initiative = 10
+        opponent.initiative = 0
+        player.stamina = 0
+        opponent.stamina = 0
+
+        combat = Combat(player, opponent)
+
+        with patch("combat.random.random", return_value=0.0), patch("combat.random.uniform", return_value=1.0), patch("combat.random.randint", return_value=100):
+            round1 = combat.execute_round()
+            round2 = combat.execute_round()
+            round3 = combat.execute_round()
+
+        assert round1["winner"] is None
+        assert round2["winner"] is None
+        assert round3["winner"] in {"player", "opponent"}
 
     def test_get_state(self):
         player = Gladiator("Player", "Human", use_race_stats=False)
