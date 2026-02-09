@@ -6,10 +6,15 @@ interface EquipmentManagerProps {
   gladiator: GladiatorWithEquipment
   onGladiatorUpdate: (gladiator: GladiatorWithEquipment) => void
   onClose: () => void
+  view: 'inventory' | 'shop'
 }
 
-export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: EquipmentManagerProps) {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'shop'>('inventory')
+export function EquipmentManager({
+  gladiator,
+  onGladiatorUpdate,
+  onClose,
+  view,
+}: EquipmentManagerProps) {
   const [shopInventory, setShopInventory] = useState<ShopInventory | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -32,10 +37,10 @@ export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: Equi
   ]
 
   useEffect(() => {
-    if (activeTab === 'shop') {
+    if (view === 'shop') {
       loadShopInventory()
     }
-  }, [activeTab])
+  }, [view])
 
   const loadShopInventory = async () => {
     setLoading(true)
@@ -132,11 +137,13 @@ export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: Equi
     }
   }
 
+  const headerTitle = view === 'shop' ? 'Store' : 'Equipment'
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <h2>Equipment Manager</h2>
+          <h2>{headerTitle}</h2>
           <div className={styles.goldDisplay}>
             Gold: {gladiator.gold}
           </div>
@@ -148,22 +155,7 @@ export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: Equi
 
       {error && <div className={styles.error}>{error}</div>}
 
-      <div className={styles.tabs}>
-        <button
-          className={`${styles.tab} ${activeTab === 'inventory' ? styles.active : ''}`}
-          onClick={() => setActiveTab('inventory')}
-        >
-          Inventory & Equipped Items
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'shop' ? styles.active : ''}`}
-          onClick={() => setActiveTab('shop')}
-        >
-          Equipment Shop
-        </button>
-      </div>
-
-      {activeTab === 'inventory' && (
+      {view === 'inventory' && (
         <div className={styles.inventorySection}>
           <div className={styles.equippedItems}>
             <h3>Equipped Items</h3>
@@ -223,7 +215,7 @@ export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: Equi
         </div>
       )}
 
-      {activeTab === 'shop' && (
+      {view === 'shop' && (
         <div className={styles.shopSection}>
           <h3>Equipment Shop</h3>
           {loading ? (

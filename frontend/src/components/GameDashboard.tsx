@@ -69,6 +69,7 @@ export function GameDashboard({
   }
   const portrait = portraitMap[raceKey]
   const [showEquipment, setShowEquipment] = useState(false)
+  const [equipmentView, setEquipmentView] = useState<'inventory' | 'shop'>('inventory')
 
   return (
     <div className={styles.container}>
@@ -230,10 +231,23 @@ export function GameDashboard({
               </button>
               <button
                 className={styles.button}
-                onClick={() => setShowEquipment(true)}
+                onClick={() => {
+                  setEquipmentView('inventory')
+                  setShowEquipment(true)
+                }}
                 disabled={loading}
               >
                 Equipment
+              </button>
+              <button
+                className={styles.button}
+                onClick={() => {
+                  setEquipmentView('shop')
+                  setShowEquipment(true)
+                }}
+                disabled={loading}
+              >
+                Store
               </button>
             </div>
           </div>
@@ -245,6 +259,7 @@ export function GameDashboard({
           gladiator={gladiator}
           onGladiatorUpdate={onGladiatorUpdate}
           onClose={() => setShowEquipment(false)}
+          view={equipmentView}
         />
       )}
     </div>
