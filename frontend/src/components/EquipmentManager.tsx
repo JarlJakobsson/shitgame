@@ -141,15 +141,10 @@ export function EquipmentManager({
   }
 
   const getRequirementState = (item: Equipment) => {
-    const levelMissing = gladiator.level < item.level_requirement
-    const weaponskillReq = item.weaponskill_requirement || 0
-    const weaponskillMissing = weaponskillReq > 0 && gladiator.weaponskill < weaponskillReq
     const goldMissing = gladiator.gold < item.value
     return {
-      levelMissing,
-      weaponskillMissing,
       goldMissing,
-      canBuy: !levelMissing && !weaponskillMissing && !goldMissing,
+      canBuy: !goldMissing,
     }
   }
 
@@ -360,16 +355,6 @@ export function EquipmentManager({
                     </div>
                     <div className={styles.itemType}>{item.slot} ({itemTypeLabel})</div>
                     <div className={styles.itemStats}>{getStatBonuses(item)}</div>
-                    <div className={styles.requirements}>
-                      <div className={req.levelMissing ? styles.requirementMissing : styles.requirementOk}>
-                        Level: {gladiator.level} / {item.level_requirement}
-                      </div>
-                      {item.weaponskill_requirement > 0 && (
-                        <div className={req.weaponskillMissing ? styles.requirementMissing : styles.requirementOk}>
-                          Weaponskill: {gladiator.weaponskill} / {item.weaponskill_requirement}
-                        </div>
-                      )}
-                    </div>
                     <div className={styles.itemDescription}>{item.description}</div>
                     <div className={styles.itemFooter}>
                       <div className={req.goldMissing ? styles.itemValueMissing : styles.itemValue}>
@@ -380,13 +365,7 @@ export function EquipmentManager({
                         onClick={() => handlePurchaseItem(item.id)}
                         disabled={loading || !req.canBuy}
                       >
-                        {req.levelMissing
-                          ? `Need Level ${item.level_requirement}`
-                          : req.weaponskillMissing
-                            ? `Need WS ${item.weaponskill_requirement}`
-                            : req.goldMissing
-                              ? 'Not enough gold'
-                              : 'Buy'}
+                        {req.goldMissing ? 'Not enough gold' : 'Buy'}
                       </button>
                     </div>
                   </div>

@@ -82,14 +82,14 @@ class TestEquipment:
         )
         assert 1 not in [item.id for item in after_owning_item]
 
-    def test_purchase_equipment_fails_if_level_requirement_not_met(self, db_session):
+    def test_purchase_equipment_allows_buy_if_level_requirement_not_met(self, db_session):
         initialize_equipment(db_session)
         gladiator = _create_gladiator(db_session, level=1, gold=10_000)
 
         ok = purchase_equipment(db_session, gladiator.id, 9)  # level requirement 12
-        assert ok is False
+        assert ok is True
 
-    def test_purchase_equipment_fails_if_weaponskill_requirement_not_met(self, db_session):
+    def test_purchase_equipment_allows_buy_if_weaponskill_requirement_not_met(self, db_session):
         initialize_equipment(db_session)
         gladiator = _create_gladiator(db_session, level=20, gold=10_000)
 
@@ -107,13 +107,60 @@ class TestEquipment:
         db_session.commit()
 
         ok = purchase_equipment(db_session, gladiator.id, ws_item.id)
-        assert ok is False
+        assert ok is True
+
+    def test_equip_item_fails_if_level_requirement_not_met(self, db_session):
+        initialize_equipment(db_session)
+        gladiator = _create_gladiator(db_session, level=1, gold=10_000)
+
+        db_session.add(GladiatorEquipmentRow(gladiator_id=gladiator.id, equipment_id=9, is_equipped=0))
+        db_session.commit()
+
+        equipped_ok = equip_item(
+            db_session,
+            gladiator.id,
+            EquipmentSlotRequest(equipment_id=9, slot="weapon"),
+        )
+        assert equipped_ok is False
+
+    def test_equip_item_fails_if_weaponskill_requirement_not_met(self, db_session):
+        initialize_equipment(db_session)
+        gladiator = _create_gladiator(db_session, level=20, gold=10_000)
+
+        ws_item = EquipmentRow(
+            name="WS Equip Test Axe",
+            slot="weapon",
+            item_type="weapon",
+            rarity="common",
+            level_requirement=1,
+            weaponskill_requirement=50,
+            value=10,
+            description="Test requirement item",
+        )
+        db_session.add(ws_item)
+        db_session.commit()
+
+        db_session.add(
+            GladiatorEquipmentRow(gladiator_id=gladiator.id, equipment_id=ws_item.id, is_equipped=0)
+        )
+        db_session.commit()
+
+        equipped_ok = equip_item(
+            db_session,
+            gladiator.id,
+            EquipmentSlotRequest(equipment_id=ws_item.id, slot="weapon"),
+        )
+        assert equipped_ok is False
 
         gladiator.weaponskill = 60
         db_session.commit()
 
-        ok_after_ws = purchase_equipment(db_session, gladiator.id, ws_item.id)
-        assert ok_after_ws is True
+        equipped_after_ws = equip_item(
+            db_session,
+            gladiator.id,
+            EquipmentSlotRequest(equipment_id=ws_item.id, slot="weapon"),
+        )
+        assert equipped_after_ws is True
 
     def test_get_gladiator_equipment(self, db_session):
         initialize_equipment(db_session)

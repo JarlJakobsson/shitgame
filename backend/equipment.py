@@ -378,6 +378,13 @@ def equip_item(db: Session, gladiator_id: int, request: EquipmentSlotRequest) ->
     if not gladiator:
         return False
 
+    # Items can be bought early, but equipping still requires meeting requirements.
+    if gladiator.level < equipment.level_requirement:
+        return False
+
+    if gladiator.weaponskill < equipment.weaponskill_requirement:
+        return False
+
     if not gladiator.equipped_items:
         gladiator.equipped_items = {}
 
@@ -436,12 +443,6 @@ def purchase_equipment(db: Session, gladiator_id: int, equipment_id: int) -> boo
 
     gladiator = db.query(GladiatorRow).filter(GladiatorRow.id == gladiator_id).first()
     if not gladiator:
-        return False
-
-    if gladiator.level < equipment.level_requirement:
-        return False
-
-    if gladiator.weaponskill < equipment.weaponskill_requirement:
         return False
 
     if gladiator.gold < purchase_cost:
