@@ -27,6 +27,8 @@ class Character:
         self.initiative: int = 0
         self.weaponskill: int = 0
         self.stamina: int = 0
+        self.weapon_min_damage: int = 0
+        self.weapon_max_damage: int = 0
 
     def to_dict(self):
         return {

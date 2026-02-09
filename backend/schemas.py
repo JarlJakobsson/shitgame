@@ -21,6 +21,8 @@ class Equipment(BaseModel):
     initiative_bonus: int = 0
     weaponskill_bonus: int = 0
     weaponskill_requirement: int = 0
+    min_damage: int = 0
+    max_damage: int = 0
     value: int = 10
     description: Optional[str] = None
 

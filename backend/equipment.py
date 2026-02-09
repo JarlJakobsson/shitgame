@@ -178,9 +178,30 @@ def upsert_equipment_from_json(db: Session, items: List[dict]) -> Dict[str, int]
                     0,
                 ),
             ),
+            "min_damage": max(
+                0,
+                _coerce_int(
+                    item.get(
+                        "min_damage",
+                        (item.get("metadata") or {}).get("min_damage"),
+                    ),
+                    0,
+                ),
+            ),
+            "max_damage": 0,
             "value": max(1, _coerce_int(item.get("value"), 10)),
             "description": item.get("description"),
         }
+        payload["max_damage"] = max(
+            payload["min_damage"],
+            _coerce_int(
+                item.get(
+                    "max_damage",
+                    (item.get("metadata") or {}).get("max_damage"),
+                ),
+                payload["min_damage"],
+            ),
+        )
 
         row = db.query(EquipmentRow).filter(
             EquipmentRow.name == payload["name"],
@@ -247,6 +268,8 @@ def get_all_equipment(db: Session) -> List[Equipment]:
         initiative_bonus=row.initiative_bonus,
         weaponskill_bonus=row.weaponskill_bonus,
         weaponskill_requirement=row.weaponskill_requirement,
+        min_damage=row.min_damage,
+        max_damage=row.max_damage,
         value=row.value,
         description=row.description
     ) for row in equipment_rows]
@@ -284,6 +307,8 @@ def get_shop_inventory(db: Session, gladiator_level: int, gladiator_id: int) -> 
         initiative_bonus=row.initiative_bonus,
         weaponskill_bonus=row.weaponskill_bonus,
         weaponskill_requirement=row.weaponskill_requirement,
+        min_damage=row.min_damage,
+        max_damage=row.max_damage,
         value=_purchase_value_from_sell_value(row.value),
         description=row.description
     ) for row in equipment_rows]
@@ -315,6 +340,8 @@ def get_gladiator_equipment(db: Session, gladiator_id: int) -> List[GladiatorEqu
                 initiative_bonus=equipment.initiative_bonus,
                 weaponskill_bonus=equipment.weaponskill_bonus,
                 weaponskill_requirement=equipment.weaponskill_requirement,
+                min_damage=equipment.min_damage,
+                max_damage=equipment.max_damage,
                 value=equipment.value,
                 description=equipment.description
             ),
@@ -350,6 +377,8 @@ def get_equipped_items(db: Session, gladiator_id: int) -> Dict[str, Equipment]:
                 initiative_bonus=equipment.initiative_bonus,
                 weaponskill_bonus=equipment.weaponskill_bonus,
                 weaponskill_requirement=equipment.weaponskill_requirement,
+                min_damage=equipment.min_damage,
+                max_damage=equipment.max_damage,
                 value=equipment.value,
                 description=equipment.description
             )

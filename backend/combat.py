@@ -89,10 +89,21 @@ class Combat:
         Returns:
             tuple: (damage, is_critical_hit)
         """
-        # Base damage from strength with a small multiplier-based randomizer
-        base_damage = attacker.strength * 0.088
-        damage_multiplier = random.uniform(0.85, 1.15)
-        base_damage = int(round(base_damage * damage_multiplier))
+        # Base damage:
+        # 1) roll weapon min/max if equipped weapon profile exists
+        # 2) add strength multiplier component
+        weapon_min = max(0, int(getattr(attacker, "weapon_min_damage", 0) or 0))
+        weapon_max = max(weapon_min, int(getattr(attacker, "weapon_max_damage", 0) or 0))
+        if weapon_max > 0:
+            weapon_roll = random.randint(weapon_min, weapon_max)
+            strength_component = int(round(attacker.strength * 0.088))
+            base_damage = weapon_roll + strength_component
+        else:
+            # Fallback for unarmed/no-weapon-profile combatants
+            base_damage = attacker.strength * 0.088
+            damage_multiplier = random.uniform(0.85, 1.15)
+            base_damage = int(round(base_damage * damage_multiplier))
+
         if base_damage == 0 and attacker.strength > 0:
             base_damage = 1
 

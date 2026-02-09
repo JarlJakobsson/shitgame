@@ -65,6 +65,27 @@ class TestCombat:
         assert damage > 0
         assert critical is True
 
+    def test_calculate_attack_damage_uses_weapon_range_plus_strength(self):
+        attacker = Gladiator("Attacker", "Human", use_race_stats=False)
+        attacker.strength = 50
+        attacker.weaponskill = 100
+        attacker.weapon_min_damage = 10
+        attacker.weapon_max_damage = 10
+
+        defender = Gladiator("Defender", "Human", use_race_stats=False)
+        defender.dodge = 1
+
+        combat = Combat(attacker, defender)
+
+        with patch("combat.random.random", return_value=0.0), patch(
+            "combat.random.randint", side_effect=[10, 100]
+        ):
+            damage, critical = combat.calculate_attack_damage(attacker, defender)
+
+        # weapon roll (10) + strength component round(50 * 0.088) = 14
+        assert damage == 14
+        assert critical is False
+
     def test_execute_round_increments_and_returns_expected_shape(self):
         player = Gladiator("Player", "Human", use_race_stats=False)
         player.max_health = player.current_health = 20

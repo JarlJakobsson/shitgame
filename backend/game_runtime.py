@@ -9,7 +9,7 @@ from sqlalchemy import inspect, or_, text
 
 from combat import Combat
 from database import engine, get_db
-from equipment import calculate_equipment_bonuses, initialize_equipment
+from equipment import calculate_equipment_bonuses, get_equipped_items, initialize_equipment
 from gladiator import Gladiator
 from models_db import (
     Base,
@@ -93,6 +93,22 @@ def _ensure_equipment_columns():
                 text(
                     "ALTER TABLE equipment "
                     "ADD COLUMN weapon_subtype VARCHAR(120)"
+                )
+            )
+    if "min_damage" not in columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE equipment "
+                    "ADD COLUMN min_damage INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+    if "max_damage" not in columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE equipment "
+                    "ADD COLUMN max_damage INTEGER NOT NULL DEFAULT 0"
                 )
             )
 
@@ -238,6 +254,19 @@ def _gladiator_from_row(db, row: GladiatorRow, apply_equipment_bonuses: bool) ->
         gladiator.weaponskill += bonuses["weaponskill_bonus"]
         if bonuses["vitality_bonus"] > 0:
             gladiator.max_health = 1 + int(floor(gladiator.vitality * 1.5))
+
+    # Attach equipped weapon damage profile for combat calculations.
+    equipped_items = get_equipped_items(db, row.id)
+    weapon = equipped_items.get("weapon")
+    if weapon:
+        weapon_min = max(0, int(getattr(weapon, "min_damage", 0) or 0))
+        weapon_max = max(weapon_min, int(getattr(weapon, "max_damage", 0) or 0))
+        gladiator.weapon_min_damage = weapon_min
+        gladiator.weapon_max_damage = weapon_max
+    else:
+        gladiator.weapon_min_damage = 0
+        gladiator.weapon_max_damage = 0
+
     return gladiator
 
 

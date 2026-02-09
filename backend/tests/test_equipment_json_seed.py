@@ -92,6 +92,32 @@ class TestEquipmentJsonSeed:
         finally:
             session.close()
 
+    def test_upsert_maps_damage_range_from_metadata(self):
+        session = _make_session()
+        try:
+            items = [
+                {
+                    "name": "Damage Test Axe",
+                    "slot": "weapon",
+                    "item_type": "weapon",
+                    "weapon_subtype": "axe",
+                    "metadata": {"min_damage": 11, "max_damage": 19},
+                }
+            ]
+            result = upsert_equipment_from_json(session, items)
+            assert result["inserted"] == 1
+
+            row = session.query(EquipmentRow).filter(
+                EquipmentRow.name == "Damage Test Axe",
+                EquipmentRow.slot == "weapon",
+                EquipmentRow.item_type == "weapon",
+            ).first()
+            assert row is not None
+            assert row.min_damage == 11
+            assert row.max_damage == 19
+        finally:
+            session.close()
+
     def test_upsert_rejects_invalid_weapon_subtype(self):
         session = _make_session()
         try:

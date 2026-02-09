@@ -26,6 +26,8 @@ class EquipmentRow(Base):
     initiative_bonus = Column(Integer, nullable=False, default=0)
     weaponskill_bonus = Column(Integer, nullable=False, default=0)
     weaponskill_requirement = Column(Integer, nullable=False, default=0)
+    min_damage = Column(Integer, nullable=False, default=0)
+    max_damage = Column(Integer, nullable=False, default=0)
 
     value = Column(Integer, nullable=False, default=10)
     description = Column(String, nullable=True)
