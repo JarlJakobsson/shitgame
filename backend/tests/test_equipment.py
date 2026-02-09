@@ -67,6 +67,9 @@ class TestEquipment:
         )
         assert len(level_one_items) == len(SAMPLE_EQUIPMENT)
         assert any(item.level_requirement > 1 for item in level_one_items)
+        assert [item.level_requirement for item in level_one_items] == sorted(
+            item.level_requirement for item in level_one_items
+        )
         iron_helmet = next((item for item in level_one_items if item.id == 1), None)
         assert iron_helmet is not None
         assert iron_helmet.value == 100  # sell 25 -> buy 100

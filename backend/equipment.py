@@ -254,7 +254,10 @@ def get_all_equipment(db: Session) -> List[Equipment]:
 
 def get_shop_inventory(db: Session, gladiator_level: int, gladiator_id: int) -> List[Equipment]:
     """Get all unowned equipment available in the shop."""
-    all_equipment = db.query(EquipmentRow).all()
+    all_equipment = db.query(EquipmentRow).order_by(
+        EquipmentRow.level_requirement.asc(),
+        EquipmentRow.id.asc(),
+    ).all()
 
     gladiator = db.query(GladiatorRow).filter(GladiatorRow.id == gladiator_id).first()
     if not gladiator:
