@@ -24,6 +24,12 @@
   margin: 0;
 }
 
+.menuError {
+  margin-top: 0.75rem;
+  color: #ff7d7d;
+  font-weight: 600;
+}
+
 .enemyGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

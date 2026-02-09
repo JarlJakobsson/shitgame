@@ -21,6 +21,11 @@ async def start_combat(request: Request, enemy_name: str = Query(None)):
         current_gladiator = rt._load_gladiator(db, player_token)
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
+        if not current_gladiator.is_alive():
+            raise HTTPException(
+                status_code=400,
+                detail="You are too injured to fight. Wait for recovery.",
+            )
 
     # Try to get enemy_name from JSON body if not provided as query.
     if enemy_name is None:

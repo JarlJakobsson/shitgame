@@ -99,6 +99,7 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
   );
   const [enemyMenuOpen, setEnemyMenuOpen] = useState(!replayData);
   const [enemies, setEnemies] = useState<Record<string, any>>({});
+  const [arenaError, setArenaError] = useState('');
 
   useEffect(() => {
     if (replayData) {
@@ -123,6 +124,7 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
   const handleEnemySelect = async (enemyName: string) => {
     setEnemyMenuOpen(false);
     setLoading(true);
+    setArenaError('');
     try {
       const result = await gameAPI.startCombatWithEnemy(enemyName);
       const initialState = {
@@ -139,7 +141,10 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
       setCombatState(initialState);
       setLoading(false);
       simulateAllRounds(initialState);
-    } catch (err) {
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setArenaError(typeof detail === 'string' ? detail : 'Failed to start combat.');
+      setEnemyMenuOpen(true);
       setLoading(false);
     }
   };
@@ -187,6 +192,7 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
           <div className={styles.menuHeader}>
             <h2>Choose Your Opponent</h2>
             <p>Pick your next challenge and earn your glory.</p>
+            {arenaError && <p className={styles.menuError}>{arenaError}</p>}
           </div>
           <div className={styles.enemyGrid}>
             {Object.entries(enemies).map(([name, data]) => {

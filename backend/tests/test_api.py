@@ -187,6 +187,21 @@ class TestEquipmentAPI:
 
 
 class TestCombatAPI:
+    def test_start_combat_fails_if_gladiator_is_unconscious(self):
+        mock_db = Mock()
+        dead_gladiator = Gladiator("DeadOne", "Human", use_race_stats=False)
+        dead_gladiator.max_health = 10
+        dead_gladiator.current_health = 0
+
+        with (
+            patch("game_runtime.get_db", _mock_get_db(mock_db)),
+            patch("game_runtime._load_gladiator", return_value=dead_gladiator),
+        ):
+            response = client.post("/combat/start", json={"enemy_name": "Slime"})
+
+        assert response.status_code == 400
+        assert "too injured to fight" in response.json()["detail"]
+
     def test_execute_combat_round_no_active_combat(self):
         with patch("game_runtime.current_combat", None):
             response = client.post("/combat/round")
