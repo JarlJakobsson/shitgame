@@ -181,6 +181,11 @@
   border: 1px solid #444;
 }
 
+.shopItemLocked {
+  border-color: #8a3f3f;
+  box-shadow: 0 0 0 1px rgba(138, 63, 63, 0.35) inset;
+}
+
 .itemHeader {
   display: flex;
   justify-content: space-between;
@@ -199,6 +204,23 @@
   margin: 0.5rem 0;
 }
 
+.requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.requirementOk {
+  color: #a8c5a8;
+}
+
+.requirementMissing {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
 .itemFooter {
   display: flex;
   justify-content: space-between;
@@ -208,6 +230,11 @@
 
 .itemValue {
   color: #ffd700;
+  font-weight: bold;
+}
+
+.itemValueMissing {
+  color: #ff6b6b;
   font-weight: bold;
 }
 

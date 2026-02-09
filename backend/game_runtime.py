@@ -49,6 +49,7 @@ def _init_db():
         try:
             Base.metadata.create_all(bind=engine)
             _ensure_equipped_items_column()
+            _ensure_equipment_columns()
             _ensure_player_token_column()
             _ensure_fight_history_columns()
             _ensure_recovery_columns()
@@ -71,6 +72,21 @@ def _ensure_equipped_items_column():
         return
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE gladiators ADD COLUMN equipped_items JSON"))
+
+
+def _ensure_equipment_columns():
+    inspector = inspect(engine)
+    if "equipment" not in inspector.get_table_names():
+        return
+    columns = {col["name"] for col in inspector.get_columns("equipment")}
+    if "weaponskill_requirement" not in columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE equipment "
+                    "ADD COLUMN weaponskill_requirement INTEGER NOT NULL DEFAULT 0"
+                )
+            )
 
 
 def _ensure_player_token_column():

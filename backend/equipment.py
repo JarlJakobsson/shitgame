@@ -2,10 +2,15 @@
 # EQUIPMENT SERVICE
 # ============================================
 
+from __future__ import annotations
+
 from typing import List, Dict
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from models_db import EquipmentRow, GladiatorRow, GladiatorEquipmentRow
 from schemas import Equipment, GladiatorEquipment, EquipmentSlotRequest
+
+SELL_TO_BUY_MULTIPLIER = 4
 
 
 # Equipment slots configuration
@@ -47,6 +52,123 @@ SAMPLE_EQUIPMENT = [
 ]
 
 
+def _coerce_int(value, default: int = 0) -> int:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return default
+        if raw.endswith("%"):
+            return default
+        try:
+            return int(float(raw))
+        except ValueError:
+            return default
+    return default
+
+
+def _purchase_value_from_sell_value(sell_value: int) -> int:
+    return max(1, int(sell_value) * SELL_TO_BUY_MULTIPLIER)
+
+
+def _sync_equipment_id_sequence(db: Session) -> None:
+    """
+    Keep PostgreSQL sequence in sync when legacy/manual rows were inserted with explicit IDs.
+    """
+    bind = db.get_bind()
+    if bind is None or bind.dialect.name != "postgresql":
+        return
+    db.execute(
+        text(
+            "SELECT setval("
+            "pg_get_serial_sequence('equipment', 'id'), "
+            "COALESCE((SELECT MAX(id) FROM equipment), 0) + 1, "
+            "false)"
+        )
+    )
+
+
+def upsert_equipment_from_json(db: Session, items: List[dict]) -> Dict[str, int]:
+    """
+    Upsert equipment rows from JSON-compatible dicts.
+
+    Match key: (name, slot, item_type)
+    """
+    inserted = 0
+    updated = 0
+    skipped = 0
+
+    _sync_equipment_id_sequence(db)
+
+    for item in items:
+        if not isinstance(item, dict):
+            skipped += 1
+            continue
+
+        name = str(item.get("name", "")).strip()
+        if not name:
+            skipped += 1
+            continue
+
+        slot = str(item.get("slot", "weapon")).strip() or "weapon"
+        item_type = str(item.get("item_type", "weapon")).strip() or "weapon"
+        rarity = str(item.get("rarity", "common")).strip() or "common"
+
+        payload = {
+            "name": name,
+            "slot": slot,
+            "item_type": item_type,
+            "rarity": rarity,
+            "level_requirement": max(1, _coerce_int(item.get("level_requirement"), 1)),
+            "strength_bonus": _coerce_int(item.get("strength_bonus"), 0),
+            "vitality_bonus": _coerce_int(item.get("vitality_bonus"), 0),
+            "stamina_bonus": _coerce_int(item.get("stamina_bonus"), 0),
+            "dodge_bonus": _coerce_int(item.get("dodge_bonus"), 0),
+            "initiative_bonus": _coerce_int(item.get("initiative_bonus"), 0),
+            "weaponskill_bonus": _coerce_int(item.get("weaponskill_bonus"), 0),
+            "weaponskill_requirement": max(
+                0,
+                _coerce_int(
+                    item.get(
+                        "weaponskill_requirement",
+                        (item.get("metadata") or {}).get("vf_requirement"),
+                    ),
+                    0,
+                ),
+            ),
+            "value": max(1, _coerce_int(item.get("value"), 10)),
+            "description": item.get("description"),
+        }
+
+        row = db.query(EquipmentRow).filter(
+            EquipmentRow.name == payload["name"],
+            EquipmentRow.slot == payload["slot"],
+            EquipmentRow.item_type == payload["item_type"],
+        ).first()
+
+        if row is None:
+            db.add(EquipmentRow(**payload))
+            inserted += 1
+            continue
+
+        for key, value in payload.items():
+            setattr(row, key, value)
+        updated += 1
+
+    db.commit()
+    return {
+        "inserted": inserted,
+        "updated": updated,
+        "skipped": skipped,
+        "total": len(items),
+    }
+
+
 def initialize_equipment(db: Session) -> None:
     """Initialize or update the equipment table with sample data."""
     existing = {row.id: row for row in db.query(EquipmentRow).all()}
@@ -86,16 +208,15 @@ def get_all_equipment(db: Session) -> List[Equipment]:
         dodge_bonus=row.dodge_bonus,
         initiative_bonus=row.initiative_bonus,
         weaponskill_bonus=row.weaponskill_bonus,
+        weaponskill_requirement=row.weaponskill_requirement,
         value=row.value,
         description=row.description
     ) for row in equipment_rows]
 
 
 def get_shop_inventory(db: Session, gladiator_level: int, gladiator_id: int) -> List[Equipment]:
-    """Get equipment available for purchase based on gladiator level."""
-    all_equipment = db.query(EquipmentRow).filter(
-        EquipmentRow.level_requirement <= gladiator_level
-    ).all()
+    """Get all unowned equipment available in the shop."""
+    all_equipment = db.query(EquipmentRow).all()
 
     gladiator = db.query(GladiatorRow).filter(GladiatorRow.id == gladiator_id).first()
     if not gladiator:
@@ -120,7 +241,8 @@ def get_shop_inventory(db: Session, gladiator_level: int, gladiator_id: int) -> 
         dodge_bonus=row.dodge_bonus,
         initiative_bonus=row.initiative_bonus,
         weaponskill_bonus=row.weaponskill_bonus,
-        value=row.value,
+        weaponskill_requirement=row.weaponskill_requirement,
+        value=_purchase_value_from_sell_value(row.value),
         description=row.description
     ) for row in equipment_rows]
 
@@ -149,6 +271,7 @@ def get_gladiator_equipment(db: Session, gladiator_id: int) -> List[GladiatorEqu
                 dodge_bonus=equipment.dodge_bonus,
                 initiative_bonus=equipment.initiative_bonus,
                 weaponskill_bonus=equipment.weaponskill_bonus,
+                weaponskill_requirement=equipment.weaponskill_requirement,
                 value=equipment.value,
                 description=equipment.description
             ),
@@ -182,6 +305,7 @@ def get_equipped_items(db: Session, gladiator_id: int) -> Dict[str, Equipment]:
                 dodge_bonus=equipment.dodge_bonus,
                 initiative_bonus=equipment.initiative_bonus,
                 weaponskill_bonus=equipment.weaponskill_bonus,
+                weaponskill_requirement=equipment.weaponskill_requirement,
                 value=equipment.value,
                 description=equipment.description
             )
@@ -264,8 +388,19 @@ def purchase_equipment(db: Session, gladiator_id: int, equipment_id: int) -> boo
     if not equipment:
         return False
 
+    purchase_cost = _purchase_value_from_sell_value(equipment.value)
+
     gladiator = db.query(GladiatorRow).filter(GladiatorRow.id == gladiator_id).first()
-    if not gladiator or gladiator.gold < equipment.value:
+    if not gladiator:
+        return False
+
+    if gladiator.level < equipment.level_requirement:
+        return False
+
+    if gladiator.weaponskill < equipment.weaponskill_requirement:
+        return False
+
+    if gladiator.gold < purchase_cost:
         return False
 
     existing = db.query(GladiatorEquipmentRow).filter(
@@ -276,7 +411,7 @@ def purchase_equipment(db: Session, gladiator_id: int, equipment_id: int) -> boo
     if existing:
         return False
 
-    gladiator.gold -= equipment.value
+    gladiator.gold -= purchase_cost
 
     gladiator_equipment = GladiatorEquipmentRow(
         gladiator_id=gladiator_id,

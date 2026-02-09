@@ -233,6 +233,7 @@ export interface Equipment {
   dodge_bonus: number;
   initiative_bonus: number;
   weaponskill_bonus: number;
+  weaponskill_requirement: number;
   value: number;
   description?: string;
 }

@@ -16,6 +16,28 @@ import game_runtime as rt
 router = APIRouter()
 
 
+def _build_racial_bonus_map(race_name: str) -> dict[str, float]:
+    race_data = RACES.get(race_name, {})
+    racial_bonus_map: dict[str, float] = {}
+    for entry in race_data.get("racial_bonus", []):
+        stat_key = str(entry.get("stat", "")).strip().lower()
+        if stat_key == "agility":
+            stat_key = "dodge"
+        raw_value = str(entry.get("value", "")).replace("%", "").strip()
+        try:
+            percent = float(raw_value) / 100.0
+        except ValueError:
+            continue
+        racial_bonus_map[stat_key] = percent
+    return racial_bonus_map
+
+
+def _apply_racial_modifier(base_value: int, stat_key: str, racial_bonus_map: dict[str, float]) -> int:
+    percent = racial_bonus_map.get(stat_key, 0.0)
+    adjusted = base_value + (base_value * percent)
+    return max(0, int(floor(adjusted)))
+
+
 @router.post("/gladiator")
 def create_gladiator(gladiator_data: GladiatorCreate, request: Request):
     """Create a new gladiator."""
@@ -43,24 +65,12 @@ def create_gladiator(gladiator_data: GladiatorCreate, request: Request):
     if any(value < 0 for value in stats.values()):
         raise HTTPException(status_code=400, detail="Stat points cannot be negative")
 
-    # Apply racial bonus percentages (if any) after point allocation.
-    racial_bonus_map = {}
-    race_data = RACES.get(gladiator_data.race, {})
-    for entry in race_data.get("racial_bonus", []):
-        stat_key = entry.get("stat", "").strip().lower()
-        value = entry.get("value", "").replace("%", "").strip()
-        try:
-            percent = float(value) / 100.0
-        except ValueError:
-            continue
-        racial_bonus_map[stat_key] = percent
-
-    def apply_bonus(base_value, stat_key):
-        percent = racial_bonus_map.get(stat_key, 0.0)
-        adjusted = base_value + (base_value * percent)
-        return max(0, int(floor(adjusted)))
-
-    stats_with_bonus = {key: apply_bonus(value, key) for key, value in stats.items()}
+    # Racial modifiers affect only point allocation, not flat bonuses from other systems.
+    racial_bonus_map = _build_racial_bonus_map(gladiator_data.race)
+    stats_with_bonus = {
+        key: _apply_racial_modifier(value, key, racial_bonus_map)
+        for key, value in stats.items()
+    }
 
     current_gladiator = Gladiator(gladiator_data.name, gladiator_data.race, use_race_stats=True)
     vitality = stats_with_bonus["health"]
@@ -102,7 +112,7 @@ def allocate_stat_points(allocation: StatAllocation, request: Request):
     player_token = rt._resolve_player_token(request)
     with rt.get_db() as db:
         current_gladiator = rt._load_gladiator(
-            db, player_token, apply_equipment_bonuses=True
+            db, player_token, apply_equipment_bonuses=False
         )
         if current_gladiator is None:
             raise HTTPException(status_code=404, detail="No gladiator created")
@@ -126,7 +136,14 @@ def allocate_stat_points(allocation: StatAllocation, request: Request):
     if total_points > current_gladiator.stat_points:
         raise HTTPException(status_code=400, detail="Not enough stat points")
 
-    health_points = points["health"]
+    # Racial modifiers affect allocated points. Equipment and other sources remain flat.
+    racial_bonus_map = _build_racial_bonus_map(current_gladiator.race)
+    adjusted_points = {
+        key: _apply_racial_modifier(value, key, racial_bonus_map)
+        for key, value in points.items()
+    }
+
+    health_points = adjusted_points["health"]
     if health_points > 0:
         current_gladiator.vitality += health_points
         current_gladiator.max_health = 1 + int(floor(current_gladiator.vitality * 1.5))
@@ -135,11 +152,11 @@ def allocate_stat_points(allocation: StatAllocation, request: Request):
             current_gladiator.max_health,
         )
 
-    current_gladiator.strength += points["strength"]
-    current_gladiator.dodge += points["dodge"]
-    current_gladiator.initiative += points["initiative"]
-    current_gladiator.weaponskill += points["weaponskill"]
-    current_gladiator.stamina += points["stamina"]
+    current_gladiator.strength += adjusted_points["strength"]
+    current_gladiator.dodge += adjusted_points["dodge"]
+    current_gladiator.initiative += adjusted_points["initiative"]
+    current_gladiator.weaponskill += adjusted_points["weaponskill"]
+    current_gladiator.stamina += adjusted_points["stamina"]
     current_gladiator.stat_points -= total_points
 
     with rt.get_db() as db:

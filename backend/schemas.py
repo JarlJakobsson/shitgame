@@ -19,6 +19,7 @@ class Equipment(BaseModel):
     dodge_bonus: int = 0
     initiative_bonus: int = 0
     weaponskill_bonus: int = 0
+    weaponskill_requirement: int = 0
     value: int = 10
     description: Optional[str] = None
 

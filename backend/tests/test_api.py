@@ -111,6 +111,39 @@ class TestGladiatorAPI:
         assert response.status_code == 400
         assert "Not enough stat points" in response.json()["detail"]
 
+    def test_allocate_stat_points_applies_racial_modifier(self):
+        mock_db = Mock()
+        gladiator = Gladiator("TestGladiator", "Human", use_race_stats=False)
+        gladiator.strength = 10
+        gladiator.stat_points = 10
+
+        allocation = {
+            "health": 0,
+            "strength": 10,
+            "dodge": 0,
+            "initiative": 0,
+            "weaponskill": 0,
+            "stamina": 0,
+        }
+
+        with (
+            patch("game_runtime.get_db", _mock_get_db(mock_db)),
+            patch("game_runtime._load_gladiator", return_value=gladiator) as load_gladiator,
+            patch("game_runtime._save_gladiator") as save_gladiator,
+        ):
+            response = client.post("/gladiator/allocate", json=allocation)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["strength"] == 21  # +10 allocated with Human +10% => +11 effective.
+        assert data["stat_points"] == 0
+        load_gladiator.assert_called_once_with(
+            mock_db,
+            "single-player",
+            apply_equipment_bonuses=False,
+        )
+        save_gladiator.assert_called_once_with(mock_db, gladiator, "single-player")
+
 
 class TestEquipmentAPI:
     def test_get_all_equipment(self):

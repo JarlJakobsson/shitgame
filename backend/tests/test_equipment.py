@@ -19,7 +19,7 @@ from equipment import (
     unequip_item,
 )
 from schemas import EquipmentSlotRequest
-from models_db import Base, GladiatorEquipmentRow, GladiatorRow
+from models_db import Base, EquipmentRow, GladiatorEquipmentRow, GladiatorRow
 
 
 @pytest.fixture
@@ -65,7 +65,11 @@ class TestEquipment:
         level_one_items = get_shop_inventory(
             db_session, gladiator_level=1, gladiator_id=gladiator.id
         )
-        assert all(item.level_requirement <= 1 for item in level_one_items)
+        assert len(level_one_items) == len(SAMPLE_EQUIPMENT)
+        assert any(item.level_requirement > 1 for item in level_one_items)
+        iron_helmet = next((item for item in level_one_items if item.id == 1), None)
+        assert iron_helmet is not None
+        assert iron_helmet.value == 100  # sell 25 -> buy 100
 
         db_session.add(GladiatorEquipmentRow(gladiator_id=gladiator.id, equipment_id=1, is_equipped=0))
         db_session.commit()
@@ -74,6 +78,39 @@ class TestEquipment:
             db_session, gladiator_level=1, gladiator_id=gladiator.id
         )
         assert 1 not in [item.id for item in after_owning_item]
+
+    def test_purchase_equipment_fails_if_level_requirement_not_met(self, db_session):
+        initialize_equipment(db_session)
+        gladiator = _create_gladiator(db_session, level=1, gold=10_000)
+
+        ok = purchase_equipment(db_session, gladiator.id, 9)  # level requirement 12
+        assert ok is False
+
+    def test_purchase_equipment_fails_if_weaponskill_requirement_not_met(self, db_session):
+        initialize_equipment(db_session)
+        gladiator = _create_gladiator(db_session, level=20, gold=10_000)
+
+        ws_item = EquipmentRow(
+            name="WS Test Axe",
+            slot="weapon",
+            item_type="weapon",
+            rarity="common",
+            level_requirement=1,
+            weaponskill_requirement=50,
+            value=10,
+            description="Test requirement item",
+        )
+        db_session.add(ws_item)
+        db_session.commit()
+
+        ok = purchase_equipment(db_session, gladiator.id, ws_item.id)
+        assert ok is False
+
+        gladiator.weaponskill = 60
+        db_session.commit()
+
+        ok_after_ws = purchase_equipment(db_session, gladiator.id, ws_item.id)
+        assert ok_after_ws is True
 
     def test_get_gladiator_equipment(self, db_session):
         initialize_equipment(db_session)
@@ -124,11 +161,11 @@ class TestEquipment:
         initialize_equipment(db_session)
         gladiator = _create_gladiator(db_session, gold=100)
 
-        ok = purchase_equipment(db_session, gladiator.id, 1)  # value 25
+        ok = purchase_equipment(db_session, gladiator.id, 1)  # sell 25, buy 100
         assert ok is True
 
         db_session.refresh(gladiator)
-        assert gladiator.gold == 75
+        assert gladiator.gold == 0
 
         inventory = get_gladiator_equipment(db_session, gladiator.id)
         assert any(item.equipment.id == 1 for item in inventory)

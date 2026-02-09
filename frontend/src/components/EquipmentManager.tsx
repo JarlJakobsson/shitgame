@@ -119,6 +119,19 @@ export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: Equi
     return bonuses.join(', ')
   }
 
+  const getRequirementState = (item: Equipment) => {
+    const levelMissing = gladiator.level < item.level_requirement
+    const weaponskillReq = item.weaponskill_requirement || 0
+    const weaponskillMissing = weaponskillReq > 0 && gladiator.weaponskill < weaponskillReq
+    const goldMissing = gladiator.gold < item.value
+    return {
+      levelMissing,
+      weaponskillMissing,
+      goldMissing,
+      canBuy: !levelMissing && !weaponskillMissing && !goldMissing,
+    }
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -217,29 +230,53 @@ export function EquipmentManager({ gladiator, onGladiatorUpdate, onClose }: Equi
             <div className={styles.loading}>Loading shop inventory...</div>
           ) : shopInventory ? (
             <div className={styles.shopGrid}>
-              {shopInventory.available_items.map((item) => (
-                <div key={item.id} className={styles.shopItem}>
-                  <div className={styles.itemHeader}>
-                    <div className={styles.itemName} style={{ color: getRarityColor(item.rarity) }}>
-                      {item.name}
+              {shopInventory.available_items.map((item) => {
+                const req = getRequirementState(item)
+                return (
+                  <div
+                    key={item.id}
+                    className={`${styles.shopItem} ${!req.canBuy ? styles.shopItemLocked : ''}`}
+                  >
+                    <div className={styles.itemHeader}>
+                      <div className={styles.itemName} style={{ color: getRarityColor(item.rarity) }}>
+                        {item.name}
+                      </div>
+                      <div className={styles.itemLevel}>Level {item.level_requirement}</div>
                     </div>
-                    <div className={styles.itemLevel}>Level {item.level_requirement}</div>
+                    <div className={styles.itemType}>{item.slot} ({item.item_type})</div>
+                    <div className={styles.itemStats}>{getStatBonuses(item)}</div>
+                    <div className={styles.requirements}>
+                      <div className={req.levelMissing ? styles.requirementMissing : styles.requirementOk}>
+                        Level: {gladiator.level} / {item.level_requirement}
+                      </div>
+                      {item.weaponskill_requirement > 0 && (
+                        <div className={req.weaponskillMissing ? styles.requirementMissing : styles.requirementOk}>
+                          Weaponskill: {gladiator.weaponskill} / {item.weaponskill_requirement}
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.itemDescription}>{item.description}</div>
+                    <div className={styles.itemFooter}>
+                      <div className={req.goldMissing ? styles.itemValueMissing : styles.itemValue}>
+                        {item.value} gold
+                      </div>
+                      <button
+                        className={styles.buyButton}
+                        onClick={() => handlePurchaseItem(item.id)}
+                        disabled={loading || !req.canBuy}
+                      >
+                        {req.levelMissing
+                          ? `Need Level ${item.level_requirement}`
+                          : req.weaponskillMissing
+                            ? `Need WS ${item.weaponskill_requirement}`
+                            : req.goldMissing
+                              ? 'Not enough gold'
+                              : 'Buy'}
+                      </button>
+                    </div>
                   </div>
-                  <div className={styles.itemType}>{item.slot} ({item.item_type})</div>
-                  <div className={styles.itemStats}>{getStatBonuses(item)}</div>
-                  <div className={styles.itemDescription}>{item.description}</div>
-                  <div className={styles.itemFooter}>
-                    <div className={styles.itemValue}>{item.value} gold</div>
-                    <button
-                      className={styles.buyButton}
-                      onClick={() => handlePurchaseItem(item.id)}
-                      disabled={loading || gladiator.gold < item.value}
-                    >
-                      {gladiator.gold < item.value ? 'Not enough gold' : 'Buy'}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               {shopInventory.available_items.length === 0 && (
                 <div className={styles.emptyInventory}>No equipment available</div>
               )}

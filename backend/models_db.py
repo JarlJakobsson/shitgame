@@ -24,6 +24,7 @@ class EquipmentRow(Base):
     dodge_bonus = Column(Integer, nullable=False, default=0)
     initiative_bonus = Column(Integer, nullable=False, default=0)
     weaponskill_bonus = Column(Integer, nullable=False, default=0)
+    weaponskill_requirement = Column(Integer, nullable=False, default=0)
 
     value = Column(Integer, nullable=False, default=10)
     description = Column(String, nullable=True)
