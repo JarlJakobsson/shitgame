@@ -159,6 +159,11 @@ export interface RandomBattleJoinResponse {
   };
 }
 
+export interface RandomBattleCancelResponse {
+  status: 'cancelled' | 'not_queued';
+  message: string;
+}
+
 export interface PvPGladiatorSummary {
   player_token: string;
   name: string;
@@ -306,6 +311,11 @@ export const gameAPI = {
 
   joinRandomBattle: async (): Promise<RandomBattleJoinResponse> => {
     const response = await api.post('/pvp/random-battle/join');
+    return response.data;
+  },
+
+  cancelRandomBattle: async (): Promise<RandomBattleCancelResponse> => {
+    const response = await api.post('/pvp/random-battle/cancel');
     return response.data;
   },
 

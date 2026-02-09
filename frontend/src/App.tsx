@@ -281,6 +281,22 @@ export default function App() {
     }
   }
 
+  const handleCancelRandomBattle = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const result = await gameAPI.cancelRandomBattle()
+      if (result.status === 'cancelled') {
+        setQueuedForRandomBattle(false)
+      }
+      setNotices((prev) => [result.message, ...prev].slice(0, 8))
+    } catch {
+      setError('Failed to cancel random battle queue.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleNotice = (message: string) => {
     setNotices((prev) => [message, ...prev].slice(0, 8))
   }
@@ -325,6 +341,7 @@ export default function App() {
           onTrain={handleTrain}
           onFight={handleFight}
           onRandomBattle={handleRandomBattle}
+          onCancelRandomBattle={handleCancelRandomBattle}
           onOpenGladiators={handleOpenGladiators}
           onOpenChallenges={handleOpenChallenges}
           onOpenHistory={handleOpenHistory}

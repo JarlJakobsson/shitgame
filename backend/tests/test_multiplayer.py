@@ -136,6 +136,31 @@ class TestMultiplayer:
         assert wins_losses_a == 1
         assert wins_losses_b == 1
 
+    def test_random_battle_queue_can_be_cancelled(self):
+        session = _make_session()
+        client = TestClient(app)
+        headers = {"X-Player-ID": "player-a"}
+
+        with patch("game_runtime.get_db", lambda: _db_context(session)):
+            client.post("/gladiator", headers=headers, json=_create_payload("Alpha"))
+
+            queued = client.post("/pvp/random-battle/join", headers=headers)
+            status_queued = client.get("/notifications", headers=headers)
+            cancelled = client.post("/pvp/random-battle/cancel", headers=headers)
+            status_after_cancel = client.get("/notifications", headers=headers)
+            cancel_again = client.post("/pvp/random-battle/cancel", headers=headers)
+
+        assert queued.status_code == 200
+        assert queued.json()["status"] == "queued"
+        assert status_queued.status_code == 200
+        assert status_queued.json()["queued_for_random_battle"] is True
+        assert cancelled.status_code == 200
+        assert cancelled.json()["status"] == "cancelled"
+        assert status_after_cancel.status_code == 200
+        assert status_after_cancel.json()["queued_for_random_battle"] is False
+        assert cancel_again.status_code == 200
+        assert cancel_again.json()["status"] == "not_queued"
+
     def test_direct_challenge_flow_lists_and_accepts(self):
         session = _make_session()
         client = TestClient(app)

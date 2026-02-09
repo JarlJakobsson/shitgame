@@ -249,6 +249,21 @@ def join_random_battle(request: Request):
     }
 
 
+@router.post("/pvp/random-battle/cancel")
+def cancel_random_battle(request: Request):
+    player_token = rt._resolve_player_token(request)
+    with rt.random_battle_lock:
+        try:
+            rt.random_battle_queue.remove(player_token)
+            removed = True
+        except ValueError:
+            removed = False
+
+    if removed:
+        return {"status": "cancelled", "message": "Left random battle queue."}
+    return {"status": "not_queued", "message": "You are not currently in random battle queue."}
+
+
 @router.get("/notifications")
 def get_notifications(request: Request):
     player_token = rt._resolve_player_token(request)
