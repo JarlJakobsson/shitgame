@@ -193,6 +193,11 @@ export function Arena({ onBattleEnd, playerRace, replayData = null }: ArenaProps
             <h2>Choose Your Opponent</h2>
             <p>Pick your next challenge and earn your glory.</p>
             {arenaError && <p className={styles.menuError}>{arenaError}</p>}
+            <div className={styles.menuActions}>
+              <button className={styles.button} onClick={onBattleEnd}>
+                Back
+              </button>
+            </div>
           </div>
           <div className={styles.enemyGrid}>
             {Object.entries(enemies).map(([name, data]) => {

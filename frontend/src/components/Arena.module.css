@@ -24,6 +24,12 @@
   margin: 0;
 }
 
+.menuActions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
 .menuError {
   margin-top: 0.75rem;
   color: #ff7d7d;
