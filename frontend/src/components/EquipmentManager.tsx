@@ -9,6 +9,20 @@ interface EquipmentManagerProps {
   view: 'inventory' | 'shop'
 }
 
+type ShopCategory = 'all' | 'weapons'
+type WeaponSubcategory = 'all' | 'axe' | 'sword' | 'hammer' | 'staff' | 'ranged' | 'stabbing' | 'chain'
+
+const weaponSubcategoryOptions: { key: WeaponSubcategory; label: string }[] = [
+  { key: 'all', label: 'All Weapons' },
+  { key: 'axe', label: 'Axes' },
+  { key: 'sword', label: 'Swords' },
+  { key: 'hammer', label: 'Hammers' },
+  { key: 'staff', label: 'Staves' },
+  { key: 'ranged', label: 'Ranged Weapons' },
+  { key: 'stabbing', label: 'Stabbing Weapons' },
+  { key: 'chain', label: 'Chain Weapons' },
+]
+
 export function EquipmentManager({
   gladiator,
   onGladiatorUpdate,
@@ -18,6 +32,8 @@ export function EquipmentManager({
   const [shopInventory, setShopInventory] = useState<ShopInventory | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<ShopCategory>('weapons')
+  const [selectedWeaponSubcategory, setSelectedWeaponSubcategory] = useState<WeaponSubcategory>('all')
 
   const equipmentSlots = [
     { key: 'weapon', label: 'Weapon' },
@@ -137,6 +153,80 @@ export function EquipmentManager({
     }
   }
 
+  const normalizeWeaponSubtype = (value?: string | null): WeaponSubcategory | null => {
+    const raw = (value || '').trim().toLowerCase()
+    if (!raw) return null
+
+    switch (raw) {
+      case 'axe':
+      case 'axes':
+        return 'axe'
+      case 'sword':
+      case 'swords':
+        return 'sword'
+      case 'hammer':
+      case 'hammers':
+        return 'hammer'
+      case 'staff':
+      case 'staves':
+      case 'staffs':
+        return 'staff'
+      case 'ranged':
+      case 'range':
+      case 'ranged weapon':
+      case 'ranged weapons':
+        return 'ranged'
+      case 'stabbing':
+      case 'stabbing weapon':
+      case 'stabbing weapons':
+        return 'stabbing'
+      case 'chain':
+      case 'chain weapon':
+      case 'chain weapons':
+        return 'chain'
+      default:
+        return null
+    }
+  }
+
+  const formatWeaponSubtype = (value?: string | null): string | null => {
+    const normalized = normalizeWeaponSubtype(value)
+    switch (normalized) {
+      case 'axe':
+        return 'axe'
+      case 'sword':
+        return 'sword'
+      case 'hammer':
+        return 'hammer'
+      case 'staff':
+        return 'staff'
+      case 'ranged':
+        return 'ranged'
+      case 'stabbing':
+        return 'stabbing'
+      case 'chain':
+        return 'chain'
+      default:
+        return null
+    }
+  }
+
+  const filteredShopItems = (() => {
+    if (!shopInventory) return []
+
+    let items = shopInventory.available_items
+    if (selectedCategory === 'weapons') {
+      items = items.filter((item) => item.item_type === 'weapon')
+      if (selectedWeaponSubcategory !== 'all') {
+        items = items.filter(
+          (item) => normalizeWeaponSubtype(item.weapon_subtype) === selectedWeaponSubcategory,
+        )
+      }
+    }
+
+    return items
+  })()
+
   const headerTitle = view === 'shop' ? 'Store' : 'Equipment'
 
   return (
@@ -217,13 +307,46 @@ export function EquipmentManager({
 
       {view === 'shop' && (
         <div className={styles.shopSection}>
-          <h3>Equipment Shop</h3>
+          <h3>Store</h3>
+          <div className={styles.categoryFilters}>
+            <button
+              className={`${styles.filterButton} ${selectedCategory === 'all' ? styles.filterButtonActive : ''}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              All
+            </button>
+            <button
+              className={`${styles.filterButton} ${selectedCategory === 'weapons' ? styles.filterButtonActive : ''}`}
+              onClick={() => setSelectedCategory('weapons')}
+            >
+              Weapons
+            </button>
+          </div>
+
+          {selectedCategory === 'weapons' && (
+            <div className={styles.subcategoryFilters}>
+              {weaponSubcategoryOptions.map((option) => (
+                <button
+                  key={option.key}
+                  className={`${styles.filterButton} ${selectedWeaponSubcategory === option.key ? styles.filterButtonActive : ''}`}
+                  onClick={() => setSelectedWeaponSubcategory(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {loading ? (
             <div className={styles.loading}>Loading shop inventory...</div>
           ) : shopInventory ? (
             <div className={styles.shopGrid}>
-              {shopInventory.available_items.map((item) => {
+              {filteredShopItems.map((item) => {
                 const req = getRequirementState(item)
+                const weaponSubtype = formatWeaponSubtype(item.weapon_subtype)
+                const itemTypeLabel = item.item_type === 'weapon' && weaponSubtype
+                  ? `${item.item_type} / ${weaponSubtype}`
+                  : item.item_type
                 return (
                   <div
                     key={item.id}
@@ -235,7 +358,7 @@ export function EquipmentManager({
                       </div>
                       <div className={styles.itemLevel}>Level {item.level_requirement}</div>
                     </div>
-                    <div className={styles.itemType}>{item.slot} ({item.item_type})</div>
+                    <div className={styles.itemType}>{item.slot} ({itemTypeLabel})</div>
                     <div className={styles.itemStats}>{getStatBonuses(item)}</div>
                     <div className={styles.requirements}>
                       <div className={req.levelMissing ? styles.requirementMissing : styles.requirementOk}>
@@ -269,7 +392,7 @@ export function EquipmentManager({
                   </div>
                 )
               })}
-              {shopInventory.available_items.length === 0 && (
+              {filteredShopItems.length === 0 && (
                 <div className={styles.emptyInventory}>No equipment available</div>
               )}
             </div>

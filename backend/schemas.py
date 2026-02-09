@@ -11,6 +11,7 @@ class Equipment(BaseModel):
     name: str
     slot: str
     item_type: str
+    weapon_subtype: Optional[str] = None
     rarity: str
     level_requirement: int
     strength_bonus: int = 0

@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import pytest
 
 from equipment import upsert_equipment_from_json
 from models_db import Base, EquipmentRow
@@ -21,6 +22,7 @@ class TestEquipmentJsonSeed:
                     "name": "Bronsyxa",
                     "slot": "weapon",
                     "item_type": "weapon",
+                    "weapon_subtype": "axe",
                     "rarity": "common",
                     "level_requirement": 11,
                     "stamina_bonus": 7,
@@ -38,6 +40,7 @@ class TestEquipmentJsonSeed:
                     "name": "Bronsyxa",
                     "slot": "weapon",
                     "item_type": "weapon",
+                    "weapon_subtype": "axe",
                     "rarity": "rare",
                     "level_requirement": 12,
                     "stamina_bonus": 10,
@@ -71,6 +74,7 @@ class TestEquipmentJsonSeed:
                     "name": "Sea Reaver Axe",
                     "slot": "weapon",
                     "item_type": "weapon",
+                    "weapon_subtype": "axe",
                     "metadata": {"vf_requirement": 140},
                 }
             ]
@@ -84,6 +88,38 @@ class TestEquipmentJsonSeed:
             ).first()
             assert row is not None
             assert row.weaponskill_requirement == 140
+            assert row.weapon_subtype == "axe"
+        finally:
+            session.close()
+
+    def test_upsert_rejects_invalid_weapon_subtype(self):
+        session = _make_session()
+        try:
+            items = [
+                {
+                    "name": "Bad Axe",
+                    "slot": "weapon",
+                    "item_type": "weapon",
+                    "weapon_subtype": "axes",
+                }
+            ]
+            with pytest.raises(ValueError, match="invalid weapon_subtype"):
+                upsert_equipment_from_json(session, items)
+        finally:
+            session.close()
+
+    def test_upsert_requires_weapon_subtype_for_weapons(self):
+        session = _make_session()
+        try:
+            items = [
+                {
+                    "name": "Missing Subtype Sword",
+                    "slot": "weapon",
+                    "item_type": "weapon",
+                }
+            ]
+            with pytest.raises(ValueError, match="missing required weapon_subtype"):
+                upsert_equipment_from_json(session, items)
         finally:
             session.close()
 
@@ -91,7 +127,12 @@ class TestEquipmentJsonSeed:
         session = _make_session()
         try:
             payload = [
-                {"name": "Valid Axe", "slot": "weapon", "item_type": "weapon"},
+                {
+                    "name": "Valid Axe",
+                    "slot": "weapon",
+                    "item_type": "weapon",
+                    "weapon_subtype": "axe",
+                },
                 {"name": "   ", "slot": "weapon", "item_type": "weapon"},
                 "not-a-dict",
             ]

@@ -7,6 +7,9 @@ import random
 
 class Combat:
     """Handles combat between two gladiators."""
+    # Everyone gets the first two rounds before stamina exhaustion checks can trigger.
+    _FREE_ROUNDS = 2
+
     # Non-linear required-stamina curve by round.
     # Calibrated to anchors:
     #   round 3  -> 6 stamina

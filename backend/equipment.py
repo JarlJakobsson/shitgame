@@ -11,6 +11,15 @@ from models_db import EquipmentRow, GladiatorRow, GladiatorEquipmentRow
 from schemas import Equipment, GladiatorEquipment, EquipmentSlotRequest
 
 SELL_TO_BUY_MULTIPLIER = 4
+ALLOWED_WEAPON_SUBTYPES = {
+    "axe",
+    "sword",
+    "hammer",
+    "staff",
+    "ranged",
+    "stabbing",
+    "chain",
+}
 
 
 # Equipment slots configuration
@@ -33,9 +42,9 @@ SAMPLE_EQUIPMENT = [
     {"id": 6, "name": "Plate Armor", "slot": "chest", "item_type": "armor", "rarity": "epic", "level_requirement": 8, "vitality_bonus": 10, "strength_bonus": 3, "value": 600, "description": "Full plate armor of the finest quality."},
 
     # Weapons
-    {"id": 7, "name": "Wooden Sword", "slot": "weapon", "item_type": "weapon", "rarity": "common", "level_requirement": 1, "weaponskill_bonus": 3, "value": 20, "description": "A simple wooden training sword."},
-    {"id": 8, "name": "Iron Blade", "slot": "weapon", "item_type": "weapon", "rarity": "rare", "level_requirement": 3, "weaponskill_bonus": 6, "strength_bonus": 2, "value": 180, "description": "Well-crafted iron sword."},
-    {"id": 9, "name": "Legendary Sword", "slot": "weapon", "item_type": "weapon", "rarity": "legendary", "level_requirement": 12, "weaponskill_bonus": 12, "strength_bonus": 5, "initiative_bonus": 3, "value": 1200, "description": "A sword of immense power and history."},
+    {"id": 7, "name": "Wooden Sword", "slot": "weapon", "item_type": "weapon", "weapon_subtype": "sword", "rarity": "common", "level_requirement": 1, "weaponskill_bonus": 3, "value": 20, "description": "A simple wooden training sword."},
+    {"id": 8, "name": "Iron Blade", "slot": "weapon", "item_type": "weapon", "weapon_subtype": "sword", "rarity": "rare", "level_requirement": 3, "weaponskill_bonus": 6, "strength_bonus": 2, "value": 180, "description": "Well-crafted iron sword."},
+    {"id": 9, "name": "Legendary Sword", "slot": "weapon", "item_type": "weapon", "weapon_subtype": "sword", "rarity": "legendary", "level_requirement": 12, "weaponskill_bonus": 12, "strength_bonus": 5, "initiative_bonus": 3, "value": 1200, "description": "A sword of immense power and history."},
 
     # Accessories
     {"id": 10, "name": "Iron Ring", "slot": "ring", "item_type": "accessory", "rarity": "common", "level_requirement": 1, "strength_bonus": 1, "dodge_bonus": 1, "value": 15, "description": "A simple iron ring."},
@@ -74,6 +83,25 @@ def _coerce_int(value, default: int = 0) -> int:
 
 def _purchase_value_from_sell_value(sell_value: int) -> int:
     return max(1, int(sell_value) * SELL_TO_BUY_MULTIPLIER)
+
+
+def _normalize_weapon_subtype(item_type: str, weapon_subtype, item_name: str) -> str | None:
+    if item_type != "weapon":
+        return None
+
+    raw = str(weapon_subtype or "").strip().lower()
+    if not raw:
+        raise ValueError(
+            f"Weapon '{item_name}' is missing required weapon_subtype. "
+            f"Allowed values: {sorted(ALLOWED_WEAPON_SUBTYPES)}"
+        )
+
+    if raw not in ALLOWED_WEAPON_SUBTYPES:
+        raise ValueError(
+            f"Weapon '{item_name}' has invalid weapon_subtype '{raw}'. "
+            f"Allowed values: {sorted(ALLOWED_WEAPON_SUBTYPES)}"
+        )
+    return raw
 
 
 def _sync_equipment_id_sequence(db: Session) -> None:
@@ -117,12 +145,21 @@ def upsert_equipment_from_json(db: Session, items: List[dict]) -> Dict[str, int]
 
         slot = str(item.get("slot", "weapon")).strip() or "weapon"
         item_type = str(item.get("item_type", "weapon")).strip() or "weapon"
+        weapon_subtype = _normalize_weapon_subtype(
+            item_type,
+            item.get(
+                "weapon_subtype",
+                (item.get("metadata") or {}).get("weapon_subtype"),
+            ),
+            name,
+        )
         rarity = str(item.get("rarity", "common")).strip() or "common"
 
         payload = {
             "name": name,
             "slot": slot,
             "item_type": item_type,
+            "weapon_subtype": weapon_subtype,
             "rarity": rarity,
             "level_requirement": max(1, _coerce_int(item.get("level_requirement"), 1)),
             "strength_bonus": _coerce_int(item.get("strength_bonus"), 0),
@@ -200,6 +237,7 @@ def get_all_equipment(db: Session) -> List[Equipment]:
         name=row.name,
         slot=row.slot,
         item_type=row.item_type,
+        weapon_subtype=row.weapon_subtype,
         rarity=row.rarity,
         level_requirement=row.level_requirement,
         strength_bonus=row.strength_bonus,
@@ -233,6 +271,7 @@ def get_shop_inventory(db: Session, gladiator_level: int, gladiator_id: int) -> 
         name=row.name,
         slot=row.slot,
         item_type=row.item_type,
+        weapon_subtype=row.weapon_subtype,
         rarity=row.rarity,
         level_requirement=row.level_requirement,
         strength_bonus=row.strength_bonus,
@@ -263,6 +302,7 @@ def get_gladiator_equipment(db: Session, gladiator_id: int) -> List[GladiatorEqu
                 name=equipment.name,
                 slot=equipment.slot,
                 item_type=equipment.item_type,
+                weapon_subtype=equipment.weapon_subtype,
                 rarity=equipment.rarity,
                 level_requirement=equipment.level_requirement,
                 strength_bonus=equipment.strength_bonus,
@@ -297,6 +337,7 @@ def get_equipped_items(db: Session, gladiator_id: int) -> Dict[str, Equipment]:
                 name=equipment.name,
                 slot=equipment.slot,
                 item_type=equipment.item_type,
+                weapon_subtype=equipment.weapon_subtype,
                 rarity=equipment.rarity,
                 level_requirement=equipment.level_requirement,
                 strength_bonus=equipment.strength_bonus,

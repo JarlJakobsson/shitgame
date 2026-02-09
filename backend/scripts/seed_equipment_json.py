@@ -65,18 +65,22 @@ def main() -> int:
     total_items = 0
 
     with get_db() as db:
-        for json_file in files:
-            items = _load_items(json_file)
-            result = upsert_equipment_from_json(db, items)
-            total_inserted += result["inserted"]
-            total_updated += result["updated"]
-            total_skipped += result["skipped"]
-            total_items += result["total"]
-            print(
-                f"{json_file.name}: inserted={result['inserted']} "
-                f"updated={result['updated']} skipped={result['skipped']} "
-                f"total={result['total']}"
-            )
+        try:
+            for json_file in files:
+                items = _load_items(json_file)
+                result = upsert_equipment_from_json(db, items)
+                total_inserted += result["inserted"]
+                total_updated += result["updated"]
+                total_skipped += result["skipped"]
+                total_items += result["total"]
+                print(
+                    f"{json_file.name}: inserted={result['inserted']} "
+                    f"updated={result['updated']} skipped={result['skipped']} "
+                    f"total={result['total']}"
+                )
+        except ValueError as exc:
+            print(f"Validation error while seeding equipment JSON: {exc}")
+            return 1
 
     print(
         f"Done. inserted={total_inserted} updated={total_updated} "

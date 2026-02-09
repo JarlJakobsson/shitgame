@@ -15,6 +15,7 @@ class EquipmentRow(Base):
     name = Column(String, nullable=False)
     slot = Column(String, nullable=False)
     item_type = Column(String, nullable=False)
+    weapon_subtype = Column(String, nullable=True)
     rarity = Column(String, nullable=False, default="common")
     level_requirement = Column(Integer, nullable=False, default=1)
 

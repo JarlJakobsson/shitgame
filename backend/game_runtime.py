@@ -87,6 +87,14 @@ def _ensure_equipment_columns():
                     "ADD COLUMN weaponskill_requirement INTEGER NOT NULL DEFAULT 0"
                 )
             )
+    if "weapon_subtype" not in columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE equipment "
+                    "ADD COLUMN weapon_subtype VARCHAR(120)"
+                )
+            )
 
 
 def _ensure_player_token_column():

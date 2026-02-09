@@ -225,6 +225,7 @@ export interface Equipment {
   name: string;
   slot: string;
   item_type: string;
+  weapon_subtype?: string | null;
   rarity: string;
   level_requirement: number;
   strength_bonus: number;
